@@ -57,7 +57,7 @@ namespace IFramework
         internal int priority { get { return _priority; } }
 
 
-        internal bool binded { get { return _binded; }  set { _binded = value; } }
+        internal bool binded { get { return _binded; } set { _binded = value; } }
 
 
         public string name { get; set; }
@@ -222,7 +222,8 @@ namespace IFramework
                     if (_queue.count == _queue.capacity)
                         _queue.Resize(_queue.count * 2);
                     _queue.Enqueue(moudle, moudle.priority);
-                    SyncUpdateList();
+                    if (moudle is UpdateModule)
+                        SyncUpdateList();
                     return true;
                 }
             }
@@ -254,7 +255,8 @@ namespace IFramework
                     if (_queue.Contains(moudle))
                     {
                         _queue.Remove(moudle);
-                        SyncUpdateList();
+                        if (moudle is UpdateModule)
+                            SyncUpdateList();
                     }
                     return true;
                 }

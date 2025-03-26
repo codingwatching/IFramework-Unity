@@ -9,7 +9,7 @@
 
 namespace IFramework.UI
 {
-    public interface IUIView
+    interface IUIView
     {
         void OnLoad();
         void OnShow();
@@ -19,4 +19,57 @@ namespace IFramework.UI
         void OnBecameVisible();
         void OnBecameInvisible();
     }
+    public abstract class UIView : GameObjectView, IUIView
+    {
+        public UIPanel panel { get; private set; }
+
+        internal void SetPanel(UIPanel panel)
+        {
+            this.panel = panel;
+            SetGameObject(panel.gameObject);
+        }
+        protected abstract void OnLoad();
+        protected abstract void OnShow();
+        protected abstract void OnHide();
+        protected abstract void OnClose();
+        protected abstract void OnBecameVisible();
+        protected abstract void OnBecameInvisible();
+
+        void IUIView.OnLoad()
+        {
+            OnLoad();
+        }
+
+        void IUIView.OnShow()
+        {
+
+            OnShow();
+        }
+
+        void IUIView.OnHide()
+        {
+            OnHide();
+        }
+
+        void IUIView.OnClose()
+        {
+
+            OnClose();
+            ClearFields();
+        }
+
+        void IUIView.OnBecameVisible()
+        {
+
+            OnBecameVisible();
+        }
+
+        void IUIView.OnBecameInvisible()
+        {
+            Log.FL($"UIView: {this.GetType().Name} OnBecameInvisible");
+
+            OnBecameInvisible();
+        }
+    }
+
 }

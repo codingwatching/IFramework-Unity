@@ -88,8 +88,4 @@ namespace IFramework.UI
         public RectTransform parent;
         internal ShowPanelAsyncOperation show;
     }
-    public class LoadItemAsyncOperation : UIAsyncOperation<GameObject>
-    {
-        public string path;
-    }
 }

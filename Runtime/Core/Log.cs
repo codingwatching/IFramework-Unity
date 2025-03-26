@@ -1,5 +1,4 @@
 ﻿using System;
-using static UnityEditor.ShaderData;
 
 namespace IFramework
 {
@@ -19,7 +18,7 @@ namespace IFramework
         public static bool enable_L = true;
         public static bool enable_W = true;
         public static bool enable_E = true;
-        public static bool enable_A = true;
+
 
         public static ILogger logger { get; set; }
         internal static void FL(string message)
@@ -67,16 +66,12 @@ namespace IFramework
         }
         public static void Exception(Exception ex)
         {
-            if (!enable) return;
-            if (!enable_E) return;
             if (logger != null)
                 logger.Exception(ex);
 
         }
         public static void A(bool condition, string messages, params object[] paras)
         {
-            if (!enable) return;
-            if (!enable_A) return;
             if (logger != null)
                 logger.Assert(condition, messages, paras);
 

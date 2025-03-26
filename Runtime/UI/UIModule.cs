@@ -218,7 +218,7 @@ namespace IFramework.UI
         public void HideRayCast() => layerPart.HideRayCast();
         public void ForceShowRayCast() => layerPart.ForceShowRayCast();
         public void ForceHideRayCast() => layerPart.ForceHideRayCast();
-        public RunTimeUILayerData GetRTLayerData(string layer) => layerPart.GetRTLayerData(layer);
+        private RuntimeUILayerData GetRTLayerData(string layer) => layerPart.GetRTLayerData(layer);
 
 
         public int GetPanelLayer(string path) => this.assetPart.GetPanelLayer(path);
