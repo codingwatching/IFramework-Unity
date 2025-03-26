@@ -32,37 +32,45 @@ namespace IFramework.UI
 
             public enum ItemType
             {
-                GameObject,
+                Widget,
                 UI
             }
             public override string name => "CS";
+            protected override string viewName => _type == ItemType.UI ? base.viewName : PanelToWidgetName(base.panelName);
+
             protected override string GetScriptFileName(string viewName) => $"{viewName}.cs";
+            private string PanelToWidgetName(string panelName) => $"{panelName}Widget";
 
             [SerializeField] private ItemType _type;
-
-            protected override void OnFindDirFail()
+            string old_version_widget_file_path;
+            protected override void BeforeSetViewData()
             {
-                UIPanel find = panel.GetComponent<UIPanel>();
-                if (find != null)
+                old_version_widget_file_path = string.Empty;
+                if (panel == null)
                 {
-                    _type = ItemType.UI;
+
                 }
                 else
                 {
-                    if (_type == ItemType.UI)
-                        _type = ItemType.GameObject;
+                    if (panel.GetComponent<UIPanel>() != null)
+                    {
+                        _type = ItemType.UI;
+                    }
+                    else
+                        _type = ItemType.Widget;
+
+                }
+            }
+            protected override void OnFindDirFail()
+            {
+                UIPanel find = panel.GetComponent<UIPanel>();
+                if (_type == ItemType.Widget)
+                {
+                    old_version_widget_file_path = AssetDatabase.GetAllAssetPaths().ToList().Find(x => x.EndsWith(GetScriptFileName(base.viewName)));
                 }
             }
 
-            protected override void OnFindDirSuccess()
-            {
-                string txt = File.ReadAllText(scriptPath);
-                if (txt.Contains($"{typeof(IFramework.UI.GameObjectView).FullName}"))
-                    _type = ItemType.GameObject;
-     
-                if (txt.Contains($"{typeof(IFramework.UI.UIView).FullName}"))
-                    _type = ItemType.UI;
-            }
+
 
             protected override void LoadLastData(UIGenCode _last)
             {
@@ -113,6 +121,18 @@ namespace IFramework.UI
                 File.WriteAllText(scriptGenPath.CombinePath($"{scriptName}.cs"), sb.ToString().ToUnixLineEndings());
                 AssetDatabase.Refresh();
             }
+
+            private void Fix()
+            {
+                string path = old_version_widget_file_path;
+                var old_name = Path.GetFileNameWithoutExtension(path);
+                var txt = File.ReadAllText(path);
+                txt = txt.Replace(old_name, viewName);
+                File.WriteAllText(path.Replace(old_name, viewName), txt);
+                File.Delete(path);
+                AssetDatabase.Refresh();
+            }
+
             protected override void Draw()
             {
                 GUILayout.BeginHorizontal();
@@ -121,8 +141,18 @@ namespace IFramework.UI
                 GUILayout.Label(content, GUILayout.Width(size.x));
                 pubsave.NameSpace = EditorGUILayout.TextField(pubsave.NameSpace);
                 GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
 
                 _type = (ItemType)EditorGUILayout.EnumPopup("Type", _type);
+                GUI.enabled = !string.IsNullOrEmpty(old_version_widget_file_path);
+                if (GUILayout.Button("Fix Widget", GUILayout.Width(80)))
+                {
+                    Fix();
+                }
+                GUI.enabled = true;
+
+                GUILayout.EndHorizontal();
+
             }
             protected override string GetNameSpace()
             {
@@ -137,7 +167,7 @@ namespace IFramework.UI
                 Type pa = null;
                 switch (_type)
                 {
-                    case ItemType.GameObject:
+                    case ItemType.Widget:
                         pa = typeof(GameObjectView);
                         break;
                     case ItemType.UI:
@@ -234,13 +264,13 @@ namespace IFramework.UI
             private string ViewTxt()
             {
                 if (_type == ItemType.UI)
-                    return  "\t\tprotected override void OnLoad(){}\n" +
+                    return "\t\tprotected override void OnLoad(){}\n" +
                             "\t\tprotected override void OnShow(){}\n" +
                             "\t\tprotected override void OnHide(){}\n" +
                             "\t\tprotected override void OnClose(){}\n" +
                             "\t\tprotected override void OnBecameInvisible(){}\n" +
                             "\t\tprotected override void OnBecameVisible(){}\n";
-;
+                ;
                 return string.Empty;
             }
 

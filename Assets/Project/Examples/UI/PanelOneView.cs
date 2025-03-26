@@ -54,23 +54,23 @@ namespace IFramework
             {
                 (Game.Current as UIGame).ui.Show(PanelNames_UIGame.PanelTwo);
             });
-            CreateWidgetPool<PanelOneItemView>(view.Prefab_PanelOneItem, view.items, () => new PanelOneItemView());
+            CreateWidgetPool<PanelOneItemWidget>(view.Prefab_PanelOneItem, view.items, () => new PanelOneItemWidget());
             //collection = new UIItemViewCollection((Launcher.Instance.game as UIGame).ui);
             SubscribeEvent(eve_key_remove, (e) =>
             {
                 Remove();
             });
         }
-        private Stack<PanelOneItemView> queue = new Stack<PanelOneItemView>();
+        private Stack<PanelOneItemWidget> queue = new Stack<PanelOneItemWidget>();
         private void Remove()
         {
             if (queue.Count == 0) return;
-            var pool = this.FindWidgetPool<PanelOneItemView>(view.Prefab_PanelOneItem);
+            var pool = this.FindWidgetPool<PanelOneItemWidget>(view.Prefab_PanelOneItem);
             pool.Set(queue.Pop());
         }
         private void Add()
         {
-            var pool = this.FindWidgetPool<PanelOneItemView>(view.Prefab_PanelOneItem);
+            var pool = this.FindWidgetPool<PanelOneItemWidget>(view.Prefab_PanelOneItem);
             var result = pool.Get();
             result.SetColor(new Color(Random.Range(0, 1f), Random.Range(0, 1f), Random.Range(0, 1f), 1));
             queue.Push(result);

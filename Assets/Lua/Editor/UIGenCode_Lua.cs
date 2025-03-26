@@ -80,7 +80,7 @@ namespace IFramework.Lua
 
                 if (_type == ItemType.UI)
                     return "UIView";
-                else if (_type == ItemType.GameObject)
+                else if (_type == ItemType.Widget)
                     return "GameObjectView";
 
                 return string.Empty;
@@ -94,7 +94,7 @@ namespace IFramework.Lua
  "end\n\n";
 
 
-                else if (_type == ItemType.GameObject)
+                else if (_type == ItemType.Widget)
                     return $"function {ScriptName}:ctor(gameObject)\n" +
             "\tself:SetGameObject(gameObject)\n" +
            "end\n\n";
@@ -173,7 +173,7 @@ namespace IFramework.Lua
             else
             {
                 if (_type == ItemType.UI)
-                    _type = ItemType.GameObject;
+                    _type = ItemType.Widget;
             }
         }
         protected override void LoadLastData(UIGenCode _last)
