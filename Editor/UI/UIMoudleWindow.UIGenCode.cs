@@ -15,7 +15,6 @@ using System.IO;
 using System.Text;
 using System;
 using static IFramework.EditorTools;
-using UnityEngine.UIElements;
 
 namespace IFramework.UI
 {
@@ -31,13 +30,16 @@ namespace IFramework.UI
             [SerializeField] private string GenPath = "";
             [SerializeField] private string panelPath;
 
-            private string viewName => PanelToViewName(panelName);
-            private string panelName => PanelCollection.Data.ValidName(panel.name.Replace("@sm", "")) ;
+            protected virtual string viewName => PanelToViewName(panelName);
+            protected string panelName => PanelCollection.Data.ValidName(panel.name.Replace("@sm", ""));
 
             protected string scriptFileName => GetScriptFileName(viewName);
             protected virtual string scriptPath { get { return GenPath.CombinePath(scriptFileName); } }
             public string PanelToViewName(string panelName) => $"{panelName}View";
             public string GetPanelScriptName(string panelName) => GetScriptFileName(PanelToViewName(panelName));
+
+
+
             private GameObject _panel;
 
             protected GameObject panel
@@ -104,7 +106,7 @@ namespace IFramework.UI
             }
             protected abstract void OnFindDirFail();
 
-            protected abstract void OnFindDirSuccess();
+            protected virtual void OnFindDirSuccess() { }
             protected abstract void LoadLastData(UIGenCode last);
 
 
@@ -115,6 +117,7 @@ namespace IFramework.UI
             }
             private void SetViewData()
             {
+                BeforeSetViewData();
 
                 if (panel != null)
                 {
@@ -129,6 +132,12 @@ namespace IFramework.UI
                 fields.Reload();
 
             }
+
+            protected virtual void BeforeSetViewData()
+            {
+
+            }
+    
             private void FindDir()
             {
                 string find = AssetDatabase.GetAllAssetPaths().ToList().Find(x => x.EndsWith(scriptFileName));
