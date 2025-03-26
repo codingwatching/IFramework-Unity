@@ -4,7 +4,6 @@
     "enable_L": true,
     "enable_W": true,
     "enable_E": true,
-    "enable_A": true,
     "dockWindow": true,
     "projectPath": "Assets/Project",
     "folders": [

@@ -146,7 +146,6 @@ namespace IFramework
                 Info.enable_L = EditorGUILayout.Toggle(Contents.logenable, Info.enable_L);
                 Info.enable_W = EditorGUILayout.Toggle(Contents.wenable, Info.enable_W);
                 Info.enable_E = EditorGUILayout.Toggle(Contents.errenable, Info.enable_E);
-                Info.enable_A = EditorGUILayout.Toggle(Contents.aenable, Info.enable_A);
 
                 GUI.enabled &= true;
                 if (EditorGUI.EndChangeCheck())

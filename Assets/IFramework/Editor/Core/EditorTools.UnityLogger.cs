@@ -4,7 +4,7 @@ namespace IFramework
 {
     partial class EditorTools
     {
-        public class UnityLogger : ILogger
+        class UnityLogger : ILogger
         {
             public void Error(string messages, params object[] paras)
             {

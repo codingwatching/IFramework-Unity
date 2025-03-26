@@ -10,11 +10,14 @@ using UnityEngine;
 
 namespace IFramework.UI
 {
-    public class RunTimeUILayerData
+    partial class UIModule
     {
-        public RectTransform rect;
-        //public CanvasGroup group;
-        public Transform parent;
-        public string name;
+        class RuntimeUILayerData
+        {
+            public RectTransform rect;
+            //public CanvasGroup group;
+            public Transform parent;
+            public string name;
+        }
     }
 }

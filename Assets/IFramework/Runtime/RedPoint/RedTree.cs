@@ -5,7 +5,6 @@
  *Date:           2024-04-25
 *********************************************************************************/
 using System.Collections.Generic;
-using UnityEngine;
 namespace IFramework.RedPoint
 {
     public interface ITreeViewer
@@ -192,7 +191,7 @@ namespace IFramework.RedPoint
 #endif
         }
 #if UNITY_EDITOR
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
 #endif
         public static void ClearAll()
         {

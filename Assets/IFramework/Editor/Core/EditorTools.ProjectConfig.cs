@@ -57,7 +57,6 @@ namespace IFramework
             public static bool enable_L { get { return Info.enable_L; } }
             public static bool enable_W { get { return Info.enable_W; } }
             public static bool enable_E { get { return Info.enable_E; } }
-            public static bool enable_A { get { return Info.enable_A; } }
 
             public static bool dockWindow { get { return Info.dockWindow; } }
             public static string projectPath { get { return Info.projectPath; } }
@@ -72,7 +71,6 @@ namespace IFramework
                 public bool enable_L = true;
                 public bool enable_W = true;
                 public bool enable_E = true;
-                public bool enable_A = true;
 
                 public bool dockWindow = true;
                 public string projectPath = "Assets/Project";

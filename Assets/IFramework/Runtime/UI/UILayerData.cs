@@ -14,12 +14,11 @@ namespace IFramework.UI
     [CreateAssetMenu]
     public class UILayerData : UnityEngine.ScriptableObject
     {
-        //public const string item_layer = "Items";
         public const string rayCast_layer = "RayCast";
         public List<string> GetLayerNames() { return layers; }
         public int LayerNameToIndex(string layer) => layers.IndexOf(layer);
         public string GetLayerName(int layer) => layers[layer];
-        public bool ignoreOrder;
+        public bool ignoreOrder = true;
         [UnityEngine.SerializeField]
         private List<string> layers = new List<string> {
             "Background" ,

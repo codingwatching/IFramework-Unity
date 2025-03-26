@@ -16,7 +16,7 @@ namespace IFramework.UI
         private class LayerPart
         {
             private Dictionary<string, List<UIPanel>> _panelOrders;
-            private Dictionary<string, RunTimeUILayerData> _layers;
+            private Dictionary<string, RuntimeUILayerData> _layers;
             private UIModule module;
             private Empty4Raycast raycast;
             private bool _force_show_raycast;
@@ -25,9 +25,9 @@ namespace IFramework.UI
             {
                 this.module = module;
                 _panelOrders = new Dictionary<string, List<UIPanel>>();
-                _layers = new Dictionary<string, RunTimeUILayerData>();
+                _layers = new Dictionary<string, RuntimeUILayerData>();
             }
-            private RunTimeUILayerData CreateLayer(string layerName, Transform parent)
+            private RuntimeUILayerData CreateLayer(string layerName, Transform parent)
             {
                 GameObject go = new GameObject(layerName);
                 RectTransform rect = go.AddComponent<RectTransform>();
@@ -39,7 +39,7 @@ namespace IFramework.UI
                 rect.sizeDelta = Vector3.zero;
                 rect.localRotation = Quaternion.identity;
                 rect.localScale = Vector3.one;
-                var data = new RunTimeUILayerData()
+                var data = new RuntimeUILayerData()
                 {
                     //group = group,
                     rect = rect,
@@ -68,7 +68,7 @@ namespace IFramework.UI
             //    layer.group.blocksRaycasts = visible ? true : false;
             //    layer.group.interactable = visible ? true : false;
             //}
-            public RunTimeUILayerData GetRTLayerData(string layer) => _layers[layer];
+            public RuntimeUILayerData GetRTLayerData(string layer) => _layers[layer];
 
 
             public void ShowRayCast() => raycast.raycastTarget = true;
