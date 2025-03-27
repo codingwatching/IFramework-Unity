@@ -244,7 +244,7 @@ namespace IFramework.UI
                 }
                 public static void SaveScriptsData()
                 {
-                    EditorTools.SaveToPrefs(__context, nameof(ScriptPathCollection), false);
+                    EditorTools.SaveToPrefs(context_scripts, nameof(ScriptPathCollection), false);
                 }
 
                 private static Seg GetSeg(string prefab) => context_scripts.Get(prefab);
