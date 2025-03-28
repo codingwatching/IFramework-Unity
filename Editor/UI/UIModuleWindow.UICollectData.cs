@@ -296,10 +296,10 @@ namespace IFramework.UI
             public static bool ValidOrders(PanelCollection collection)
             {
                 bool change = false;
-                var orders = collection.datas.Select(x => x.order).Distinct().ToList();
-                foreach (var oder in orders)
+                var layers = collection.datas.Select(x => x.layer).Distinct().ToList();
+                foreach (var layer in layers)
                 {
-                    var list = collection.datas.Where(x => x.order == oder).ToList();
+                    var list = collection.datas.Where(x => x.layer == layer).ToList();
                     list.Sort((x, y) => { return x.order >= y.order ? 1 : -1; });
                     for (var i = 0; i < list.Count; i++)
                     {
