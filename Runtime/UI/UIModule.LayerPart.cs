@@ -15,6 +15,25 @@ namespace IFramework.UI
     {
         private class LayerPart
         {
+
+
+            public List<UIPanel> GetPanelsByLayerName(string name)
+            {
+                List<UIPanel> panels = null;
+                if (!_panelOrders.TryGetValue(name, out panels))
+                {
+                    panels = new List<UIPanel>();
+                    _panelOrders[name] = panels;
+                }
+                return panels;
+            }
+            public List<UIPanel> FindPanelsByLayerName(string name)
+            {
+                List<UIPanel> panels = null;
+                _panelOrders.TryGetValue(name, out panels);
+                return panels;
+            }
+
             private Dictionary<string, List<UIPanel>> _panelOrders;
             private Dictionary<string, RuntimeUILayerData> _layers;
             private UIModule module;
@@ -96,10 +115,7 @@ namespace IFramework.UI
             {
                 var layer = module.GetPanelLayer(path);
                 var layerName = module.GetLayerName(layer);
-
-                if (!_panelOrders.ContainsKey(layerName))
-                    _panelOrders.Add(layerName, new List<UIPanel>());
-                var list = _panelOrders[layerName];
+                var list = GetPanelsByLayerName(layerName);
                 list.Remove(panel);
                 list.Add(panel);
                 panel.SetSiblingIndex(list.Count);
@@ -108,9 +124,7 @@ namespace IFramework.UI
             {
                 var layer = module.GetPanelLayer(path);
                 var layerName = module.GetLayerName(layer);
-                if (!_panelOrders.ContainsKey(layerName))
-                    _panelOrders.Add(layerName, new List<UIPanel>());
-                var list = _panelOrders[layerName];
+                var list = GetPanelsByLayerName(layerName);
                 if (module.GetIgnoreOrder())
                 {
                     SetAsLastOrder(path, panel);
@@ -140,10 +154,8 @@ namespace IFramework.UI
             public UIPanel GetTopShowPanel(int layer)
             {
                 var layerName = module.GetLayerName(layer);
-
-                if (!_panelOrders.ContainsKey(layerName))
-                    return null;
-                var list = _panelOrders[layerName];
+                var list = FindPanelsByLayerName(layerName);
+                if (list == null) return null;
                 for (int i = list.Count - 1; i >= 0; i--)
                 {
                     if (list[i].show)
@@ -156,19 +168,15 @@ namespace IFramework.UI
             public UIPanel GetTopPanel(int layer)
             {
                 var layerName = module.GetLayerName(layer);
-                if (!_panelOrders.ContainsKey(layerName))
-                    return null;
-                var list = _panelOrders[layerName];
-                if (list.Count == 0) return null;
+                var list = FindPanelsByLayerName(layerName);
+                if (list == null || list.Count == 0) return null;
                 return list[list.Count - 1];
             }
             public void RemovePanel(string path, UIPanel panel)
             {
                 var layer = module.GetPanelLayer(path);
                 var layerName = module.GetLayerName(layer);
-
-                var list = _panelOrders[layerName];
-                list.Remove(panel);
+                FindPanelsByLayerName(layerName)?.Remove(panel);
             }
 
             public void LegalLayerPanelVisible()
@@ -179,23 +187,21 @@ namespace IFramework.UI
                 {
                     var layerName = layerNames[i];
 
-                    if (_panelOrders.TryGetValue(layerName, out var list))
+                    var list = FindPanelsByLayerName(layerName);
+                    if (list == null) continue;
+                    for (int j = list.Count - 1; j >= 0; j--)
                     {
-                        for (int j = list.Count - 1; j >= 0; j--)
+                        var panel = list[j];
+                        var _visible = visible && panel.show;
+                        if (panel.SwitchVisible(_visible))
+                            module.CallPanelVisibleChange(panel, _visible);
+                        if (_visible)
                         {
-                            var panel = list[j];
-                            var _visible = visible && panel.show;
-                            if (panel.SwitchVisible(_visible))
-                                module.CallPanelVisibleChange(panel, _visible);
-                            if (_visible)
-                            {
-                                var path = panel.GetPath();
-                                if (module.GetPanelFullScreen(path))
-                                    visible = false;
-                            }
+                            var path = panel.GetPath();
+                            if (module.GetPanelFullScreen(path))
+                                visible = false;
                         }
                     }
-
 
 
 
