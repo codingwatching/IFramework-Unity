@@ -129,7 +129,7 @@ namespace IFramework.UI
                             TreeViewItem layer = new TreeViewItem()
                             {
                                 depth = 0,
-                                displayName = layerNames[i],
+                                displayName = $"{layerNames[i]}\t\t {findList.Count} : {datas.Count}",
                                 id = i,
                             };
                             layer.parent = root;

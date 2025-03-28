@@ -5,14 +5,14 @@
             "isResourcePath": false,
             "layer": 0,
             "fullScreen": false,
-            "order": 0
+            "order": 2
         },
         {
             "path": "Assets/Project/Examples/UI/PanelTwo.prefab",
             "isResourcePath": false,
             "layer": 0,
             "fullScreen": false,
-            "order": 0
+            "order": 1
         },
         {
             "path": "Assets/Project/Examples/UI/Panel##Two 1 @.prefab",

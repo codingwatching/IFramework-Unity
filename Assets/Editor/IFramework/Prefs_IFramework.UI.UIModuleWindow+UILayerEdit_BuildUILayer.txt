@@ -5,11 +5,13 @@
             "y": 0.0
         },
         "m_SelectedIDs": [
-            6
+            7
         ],
-        "m_LastClickedID": 6,
+        "m_LastClickedID": 7,
         "m_ExpandedIDs": [
-            0
+            0,
+            1,
+            2
         ],
         "m_RenameOverlay": {
             "m_UserAcceptedRename": false,
