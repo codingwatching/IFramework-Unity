@@ -24,7 +24,7 @@ namespace IFramework.UI
             private Dictionary<string, UIPanel> panels = new Dictionary<string, UIPanel>();
             public Canvas canvas { get; private set; }
 
-            public List<string> GetPanelNames() => panels.Keys.ToList();
+            public IEnumerable<string> GetLoadedPanelPaths() => panels.Keys;
             public void RemovePanel(string path)
             {
 
@@ -128,6 +128,9 @@ namespace IFramework.UI
                 if (canvas != null)
                     GameObject.Destroy(canvas.gameObject);
             }
+
+
+      
         }
     }
 }

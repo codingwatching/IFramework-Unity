@@ -8,6 +8,7 @@
 *********************************************************************************/
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using static IFramework.UI.UIPanel;
 
@@ -196,12 +197,55 @@ namespace IFramework.UI
                 EndChangeLayerTopChangeCheck(layer, path, false, check_close);
             }
         }
+
+
+        Queue<string> close_all_help_queue = new Queue<string>();
         public void CloseAll()
         {
-            var paths = loadPart.GetPanelNames();
-            for (int i = 0; i < paths.Count; i++)
+            var loaded = loadPart.GetLoadedPanelPaths();
+            foreach (var item in loaded)
             {
-                Close(paths[i]);
+                this.close_all_help_queue.Enqueue(item);
+            }
+            while (this.close_all_help_queue.Count > 0)
+            {
+                var path = this.close_all_help_queue.Dequeue();
+                Close(path);
+            }
+        }
+        public void CloseWithout(params string[] paths)
+        {
+            if (paths == null || paths.Length == 0)
+            {
+                CloseAll();
+            }
+            else
+            {
+                var loaded = loadPart.GetLoadedPanelPaths();
+                foreach (var item in loaded)
+                {
+                    this.close_all_help_queue.Enqueue(item);
+                }
+                while (this.close_all_help_queue.Count > 0)
+                {
+                    var path = this.close_all_help_queue.Dequeue();
+                    if (paths.Any(x => x == path)) continue;
+                    Close(path);
+                }
+            }
+        }
+        public void CloseByLayer(string layerName)
+        {
+            var list = layerPart.FindPanelsByLayerName(layerName);
+            if (list == null) return;
+            for (int i = 0; i < list.Count; i++)
+            {
+                close_all_help_queue.Enqueue(list[i].GetPath());
+            }
+            while (this.close_all_help_queue.Count > 0)
+            {
+                var path = this.close_all_help_queue.Dequeue();
+                Close(path);
             }
         }
     }
