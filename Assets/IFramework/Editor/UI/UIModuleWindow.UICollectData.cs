@@ -354,6 +354,9 @@ namespace IFramework.UI
                       {
                           isResourcePath = isResourcePath,
                           path = path,
+                          layer = 0,
+                          fullScreen = false,
+                          order = int.MaxValue
                       });
                   });
                 var change = CollectScripPaths(collect, plan);
