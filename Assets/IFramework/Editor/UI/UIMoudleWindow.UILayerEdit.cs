@@ -445,7 +445,7 @@ namespace IFramework.UI
                 Directory,
             }
             [UnityEngine.SerializeField] private Mode mode;
-            [UnityEngine.SerializeField] private TreeViewState layer_state = new TreeViewState();
+            /*[UnityEngine.SerializeField] */private TreeViewState layer_state = new TreeViewState();
             [UnityEngine.SerializeField] private string layerObjectPath;
             private UILayerData layerObject;
 
@@ -455,7 +455,7 @@ namespace IFramework.UI
                 if (last != null)
                 {
                     mode = last.mode;
-                    layer_state = last.layer_state;
+                    //layer_state = last.layer_state;
                     layerObjectPath = last.layerObjectPath;
                     layerObject = AssetDatabase.LoadAssetAtPath<UILayerData>(layerObjectPath);
                 }
