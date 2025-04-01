@@ -219,10 +219,10 @@ namespace IFramework.UI
                             list.Add(item.data);
                         }
 
+                        int index = -dirStartIndex;
                         foreach (var dir in map.Keys)
                         {
                             var findList = map[dir];
-                            int index = -dirStartIndex;
                             if (string.IsNullOrEmpty(searchString))
                             {
                                 TreeViewItem layer = new TreeViewItem()
@@ -388,7 +388,9 @@ namespace IFramework.UI
                 {
                     if (edit.mode == Mode.Layer)
                     {
-                        SetExpanded(-layerNames.ToList().IndexOf(data.layer.ToString()) - layerStartIndex, true);
+
+                        var index = data.layer;
+                        SetExpanded(-index - layerStartIndex, true);
                     }
                     else
                     {
@@ -400,8 +402,10 @@ namespace IFramework.UI
                 }
                 protected override void DoubleClickedItem(int id)
                 {
-                    var item = FindItem(id, rootItem);
-                    var _data = datas.Find(x => x.path == item.displayName);
+                    if (id < 0) return;
+
+                    //var item = FindItem(id, rootItem);
+                    var _data = datas[id];
                     if (!string.IsNullOrEmpty(searchString))
                     {
                         this.searchString = string.Empty;
