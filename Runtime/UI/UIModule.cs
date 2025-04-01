@@ -266,13 +266,10 @@ namespace IFramework.UI
 
 
         public int GetPanelLayer(string path) => this.assetPart.GetPanelLayer(path);
-        public int GetPanelLayerOrder(string path) => this.assetPart.GetPanelLayerOrder(path);
         private bool GetPanelFullScreen(string path) => this.assetPart.GetPanelFullScreen(path);
         public List<string> GetLayerNames() => this.assetPart.GetLayerNames();
-        public bool GetIgnoreOrder() => this.assetPart.GetIgnoreOrder();
         public int LayerNameToIndex(string layerName) => this.assetPart.LayerNameToIndex(layerName);
         public string GetLayerName(int layer) => this.assetPart.GetLayerName(layer);
         public bool GetIsPanelOpen(string path) => loadPart.Find(path) != null;
-        //public void LegalLayerPanelVisible() => this.layerPart.LegalLayerPanelVisible();
     }
 }

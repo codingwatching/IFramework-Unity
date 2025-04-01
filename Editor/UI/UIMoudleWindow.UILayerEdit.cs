@@ -7,13 +7,16 @@
  *History:        2022-09-13--
 *********************************************************************************/
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using static IFramework.EditorTools;
 using static IFramework.UI.PanelCollection;
 using static IFramework.UI.UIModuleWindow.UICollectData;
+using static UnityEditor.Experimental.GraphView.GraphView;
 
 namespace IFramework.UI
 {
@@ -29,7 +32,6 @@ namespace IFramework.UI
                 private SearchField searchField;
                 private UILayerEdit edit;
                 string[] layerNames;
-                IList<int> draggedItemIDs;
                 public LayerView(UILayerEdit edit) : base(edit.layer_state)
                 {
                     this.edit = edit;
@@ -41,6 +43,19 @@ namespace IFramework.UI
                             headerContent=new GUIContent("Name"),
                             minWidth=200,
                             width=200,
+                        },
+                                     new MultiColumnHeaderState.Column()
+                        {
+                            headerContent=new GUIContent("Layer"),
+                            width=100,
+                            maxWidth=100,
+                        },
+                        new MultiColumnHeaderState.Column()
+                        {
+                            headerContent=new GUIContent("FS","FullScreen"),
+                            width=30,
+                            minWidth=30,
+                            maxWidth=30,
                         },
                         new MultiColumnHeaderState.Column()
                         {
@@ -78,26 +93,14 @@ namespace IFramework.UI
                             width=30,
                         },
 
-                        new MultiColumnHeaderState.Column()
-                        {
-                            headerContent=new GUIContent("FullScreen"),
-                            width=100,
-                                      minWidth=100,
-                            maxWidth=100,
-                        },
+
                              new MultiColumnHeaderState.Column()
                         {
                             headerContent=new GUIContent("ScriptType"),
                             width=100,
                                       minWidth=100,
                         },
-                                new MultiColumnHeaderState.Column()
-                        {
-                            headerContent=new GUIContent("Order"),
-                            minWidth=40,
-                            maxWidth=40,
-                            width=40
-                        },
+
                         new MultiColumnHeaderState.Column()
                         {
                             headerContent=new GUIContent("Path"),
@@ -112,89 +115,139 @@ namespace IFramework.UI
 
                 }
 
-                protected override TreeViewItem BuildRoot()
+                protected override TreeViewItem BuildRoot() => new TreeViewItem() { depth = -1 };
+
+
+                private void BuildToLayer(TreeViewItem layer, List<Data> findList, IList<TreeViewItem> rows)
                 {
-                    return new TreeViewItem() { depth = -1 };
+                    if (findList.Count > 0)
+                    {
+                        if (IsExpanded(layer.id))
+                        {
+                            for (int j = 0; j < findList.Count; j++)
+                            {
+                                var find = findList[j];
+
+                                var index = datas.IndexOf(find);
+                                TreeViewItem item = new TreeViewItem()
+                                {
+                                    depth = 1,
+                                    displayName = find.path,
+                                    id = index,
+                                };
+                                item.parent = layer;
+                                rows.Add(item);
+                            }
+                        }
+                        else
+                        {
+                            layer.children = CreateChildListForCollapsedParent();
+                        }
+                    }
+
                 }
+
+                private void BuildToRoot(TreeViewItem root, List<Data> findList, IList<TreeViewItem> rows)
+                {
+                    if (findList.Count > 0)
+                    {
+                        for (int j = 0; j < findList.Count; j++)
+                        {
+                            var find = findList[j];
+                            if (!find.name.ToLower().Contains(searchString.ToLower()))
+                                continue;
+
+                            var index = datas.IndexOf(find);
+                            TreeViewItem item = new TreeViewItem()
+                            {
+                                depth = 1,
+                                displayName = find.path,
+                                id = index,
+                            };
+                            item.parent = root;
+                            rows.Add(item);
+                        }
+
+                    }
+
+                }
+                List<string> dirs = new List<string>();
                 protected override IList<TreeViewItem> BuildRows(TreeViewItem root)
                 {
                     var rows = GetRows() ?? new List<TreeViewItem>();
                     rows.Clear();
-
-                    for (int i = 0; i < layerNames.Length; i++)
+                    dirs.Clear();
+                    if (edit.mode == Mode.Layer)
                     {
-                        var findList = datas.FindAll(x => x.layer == edit.layerObject.LayerNameToIndex(layerNames[i]));
-                        if (string.IsNullOrEmpty(searchString))
+                        for (int i = 0; i < layerNames.Length; i++)
                         {
-                            TreeViewItem layer = new TreeViewItem()
+                            var findList = datas.FindAll(x => x.layer == edit.layerObject.LayerNameToIndex(layerNames[i]));
+                            if (string.IsNullOrEmpty(searchString))
                             {
-                                depth = 0,
-                                displayName = $"{layerNames[i]}\t\t {findList.Count} : {datas.Count}",
-                                id = i,
-                            };
-                            layer.parent = root;
-                            rows.Add(layer);
-                            if (findList.Count > 0)
+                                TreeViewItem layer = new TreeViewItem()
+                                {
+                                    depth = 0,
+                                    displayName = $"{layerNames[i]}\t\t {findList.Count} : {datas.Count}",
+                                    id = -i - 100,
+                                };
+                                layer.parent = root;
+                                rows.Add(layer);
+                                BuildToLayer(layer, findList, rows);
+                            }
+                            else
                             {
-                                if (IsExpanded(i))
-                                {
-                                    findList.Sort((x, y) => { return x.order >= y.order ? 1 : -1; });
-                                    for (int j = 0; j < findList.Count; j++)
-                                    {
-                                        var find = findList[j];
-
-                                        var index = datas.IndexOf(find);
-                                        TreeViewItem item = new TreeViewItem()
-                                        {
-                                            depth = 1,
-                                            displayName = find.path,
-                                            id = layerNames.Length + index,
-                                        };
-                                        item.parent = layer;
-                                        rows.Add(item);
-                                    }
-                                }
-                                else
-                                {
-                                    layer.children = CreateChildListForCollapsedParent();
-                                }
-
+                                BuildToRoot(root, findList, rows);
                             }
 
 
-
                         }
-                        else
-                        {
-                            if (findList.Count > 0)
-                            {
-                                findList.Sort((x, y) => { return x.order >= y.order ? 1 : -1; });
-                                for (int j = 0; j < findList.Count; j++)
-                                {
-                                    var find = findList[j];
-                                    if (!find.name.ToLower().Contains(searchString.ToLower()))
-                                        continue;
+                    }
+                    else
+                    {
+                        Dictionary<string, List<Data>> map = new Dictionary<string, List<Data>>();
 
-                                    var index = datas.IndexOf(find);
-                                    TreeViewItem item = new TreeViewItem()
-                                    {
-                                        depth = 1,
-                                        displayName = find.path,
-                                        id = layerNames.Length + index,
-                                    };
-                                    item.parent = root;
-                                    rows.Add(item);
-                                }
+                        var result = datas.Select(x => new { dir = Path.GetDirectoryName(x.path), data = x });
+
+                        foreach (var item in result)
+                        {
+                            List<Data> list = null;
+                            if (!map.TryGetValue(item.dir, out list))
+                            {
+                                list = new List<Data>();
+                                map.Add(item.dir, list);
+                            }
+                            list.Add(item.data);
+                        }
+
+                        foreach (var dir in map.Keys)
+                        {
+                            var findList = map[dir];
+                            int index = -100;
+                            if (string.IsNullOrEmpty(searchString))
+                            {
+                                TreeViewItem layer = new TreeViewItem()
+                                {
+                                    depth = 0,
+                                    displayName = $"{dir}\t\t {findList.Count} : {datas.Count}",
+                                    id = index,
+                                };
+                                layer.parent = root;
+                                rows.Add(layer);
+                                index--;
+                                dirs.Add(dir);
+                                BuildToLayer(layer, findList, rows);
+
+                            }
+                            else
+                            {
+                                BuildToRoot(root, findList, rows);
 
                             }
                         }
-
-
                     }
                     SetupParentsAndChildrenFromDepths(root, rows);
                     return rows;
                 }
-
                 protected override void RowGUI(RowGUIArgs args)
                 {
                     if (args.item.depth == 0)
@@ -203,15 +256,20 @@ namespace IFramework.UI
                         return;
                     }
                     float indent = this.GetContentIndent(args.item);
-                    var data = datas[args.item.id - layerNames.Length];
+                    var data = datas[args.item.id];
+
                     GUI.Label(EditorTools.RectEx.Zoom(args.GetCellRect(0), TextAnchor.MiddleRight, new Vector2(-indent, 0)), data.name);
+                    var temp = EditorGUI.Popup(args.GetCellRect(1), data.layer, layerNames);
+                    if (temp != data.layer)
+                    {
+                        data.layer = temp;
+                        Reload();
+                    }
+                    data.fullScreen = GUI.Toggle(args.GetCellRect(2), data.fullScreen, "");
                     if (data.isResourcePath)
-                        GUI.Label(args.GetCellRect(5), EditorGUIUtility.IconContent("d_P4_CheckOutRemote"));
-                    //GUI.Toggle(args.GetCellRect(5), data.isResourcePath, "");
-                    data.fullScreen = GUI.Toggle(args.GetCellRect(6), data.fullScreen, "");
-                    GUI.Label(args.GetCellRect(8), data.order.ToString());
+                        GUI.Label(args.GetCellRect(7), EditorGUIUtility.IconContent("d_P4_CheckOutRemote"));
                     GUI.Label(args.GetCellRect(9), data.path);
-                    var rect_7 = args.GetCellRect(7);
+                    var rect_7 = args.GetCellRect(8);
                     var seg = ScriptPathCollection.GetSeg(data);
                     var list = seg.Paths;
 
@@ -246,7 +304,7 @@ namespace IFramework.UI
 
 
 
-                    if (GUI.Button(args.GetCellRect(1), EditorGUIUtility.IconContent("Search Icon"), EditorStyles.iconButton))
+                    if (GUI.Button(args.GetCellRect(3), EditorGUIUtility.IconContent("Search Icon"), EditorStyles.iconButton))
                     {
                         var p = Resources.FindObjectsOfTypeAll(typeof(UIPanel)).Select(x => x as UIPanel).FirstOrDefault(x => x.name == data.name && !AssetDatabase.Contains(x));
                         if (p != null)
@@ -254,15 +312,15 @@ namespace IFramework.UI
                             EditorGUIUtility.PingObject(p);
                         }
                     }
-                    if (GUI.Button(args.GetCellRect(2), EditorGUIUtility.IconContent("Search Icon"), EditorStyles.iconButton))
+                    if (GUI.Button(args.GetCellRect(4), EditorGUIUtility.IconContent("Search Icon"), EditorStyles.iconButton))
                     {
                         PingProject(data);
                     }
-                    if (GUI.Button(args.GetCellRect(3), EditorGUIUtility.IconContent("d_editicon.sml"), EditorStyles.iconButton))
+                    if (GUI.Button(args.GetCellRect(5), EditorGUIUtility.IconContent("d_editicon.sml"), EditorStyles.iconButton))
                     {
                         AssetDatabase.OpenAsset(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(data.path));
                     }
-                    if (GUI.Button(args.GetCellRect(4), EditorGUIUtility.IconContent("d_editicon.sml"), EditorStyles.iconButton))
+                    if (GUI.Button(args.GetCellRect(6), EditorGUIUtility.IconContent("d_editicon.sml"), EditorStyles.iconButton))
                     {
                         if (!string.IsNullOrEmpty(seg.ScriptPath))
                         {
@@ -287,31 +345,13 @@ namespace IFramework.UI
 
                     }
                 }
-                protected override bool CanBeParent(TreeViewItem item)
-                {
-                    if (item.depth == 1)
-                        return false;
-                    var s_list = this.GetSelection();
-                    if (s_list.ToList().Find(x => x < layerNames.Length) != default)
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-                protected override bool CanStartDrag(CanStartDragArgs args)
-                {
-                    if (args.draggedItemIDs.ToList().Find(x => x < layerNames.Length) != default)
-                    {
-                        return false;
-                    }
-                    return true;
-                }
+
+
                 protected override void ContextClicked()
                 {
                     var _select = this.GetSelection();
                     if (_select == null || _select.Count == 0) return;
                     var select = _select.ToList();
-                    select.RemoveAll(x => x < layerNames.Length);
                     if (select == null || select.Count == 0) return;
 
                     GenericMenu menu = new GenericMenu();
@@ -323,9 +363,9 @@ namespace IFramework.UI
                         {
                             foreach (var id in select)
                             {
-                                var data = datas[id - layerNames.Length];
+                                var data = datas[id];
                                 if (data.layer.ToString() == name) continue;
-                                Set(edit.layerObject.LayerNameToIndex(name), int.MaxValue, data);
+                                data.layer = edit.layerObject.LayerNameToIndex(name);
                             }
                             Reload();
                             SetExpanded(layerNames.ToList().IndexOf(name), true);
@@ -333,7 +373,7 @@ namespace IFramework.UI
                     }
                     if (select.Count == 1)
                     {
-                        var data = datas[select[0] - layerNames.Length];
+                        var data = datas[select[0]];
                         menu.AddItem(new GUIContent($"CopyPath"), false, () =>
                         {
                             GUIUtility.systemCopyBuffer = data.path;
@@ -341,62 +381,20 @@ namespace IFramework.UI
                     }
                     menu.ShowAsContext();
                 }
-                private void Set(int layer, int index, Data data)
+                private void ExpandedParent(Data data)
                 {
-                    List<Data> last = datas.FindAll(x => x.layer == layer);
-                    int lastCount = last.Count;
+                    if (edit.mode == Mode.Layer)
+                    {
+                        SetExpanded(-layerNames.ToList().IndexOf(data.layer.ToString()) - 100, true);
+                    }
+                    else
+                    {
+                        var _dir = Path.GetDirectoryName(data.path);
+                        var index = dirs.IndexOf(_dir);
+                        SetExpanded(-index-100, true);
 
-                    last.Sort((x, y) => { return x.order >= y.order ? 1 : -1; });
-                    if (data.layer == layer)
-                    {
-                        last.Remove(data);
-                    }
-                    data.layer = layer;
-                    int realIndex = -1;
-                    for (int i = 0; i < last.Count; i++)
-                    {
-                        if (last[i].order >= index)
-                        {
-                            realIndex = i;
-                            break;
-                        }
-                    }
-                    if (realIndex == -1)
-                        realIndex = Mathf.Clamp(lastCount - 1, 0, lastCount - 1);
-                    last.Insert(realIndex, data);
-                    for (int i = 0; i < last.Count; i++)
-                    {
-                        last[i].order = i;
                     }
                 }
-                protected override DragAndDropVisualMode HandleDragAndDrop(DragAndDropArgs args)
-                {
-                    if (args.performDrop)
-                    {
-                        var id = args.parentItem.id;
-                        int layer = edit.layerObject.LayerNameToIndex(layerNames[id]);
-                        if (args.dragAndDropPosition != DragAndDropPosition.OutsideItems)
-                        {
-                            var last = datas.FindAll(x => x.layer == layer);
-                            var index = args.insertAtIndex;
-                            for (int i = 0; i < draggedItemIDs.Count; i++)
-                            {
-                                Set(layer, index, datas[draggedItemIDs[i] - layerNames.Length]);
-                            }
-
-                        }
-                        Reload();
-                    }
-                    return DragAndDropVisualMode.Move;
-                }
-                protected override void SetupDragAndDrop(SetupDragAndDropArgs args)
-                {
-                    draggedItemIDs = args.draggedItemIDs;
-                    DragAndDrop.PrepareStartDrag();
-                    DragAndDrop.StartDrag("");
-                    base.SetupDragAndDrop(args);
-                }
-
                 protected override void DoubleClickedItem(int id)
                 {
                     var item = FindItem(id, rootItem);
@@ -405,7 +403,8 @@ namespace IFramework.UI
                     {
                         this.searchString = string.Empty;
                         Reload();
-                        SetExpanded(layerNames.ToList().IndexOf(_data.layer.ToString()), true);
+                        ExpandedParent(_data);
+
 
                     }
                     else
@@ -419,7 +418,14 @@ namespace IFramework.UI
                 public override void OnGUI(Rect rect)
                 {
                     var rs = EditorTools.RectEx.HorizontalSplit(rect, 20);
-                    this.searchString = searchField.OnGUI(rs[0], this.searchString);
+                    var rss = RectEx.VerticalSplit(rs[0], 100,10);
+                    var _mode = (Mode)EditorGUI.EnumPopup(rss[0], edit.mode);
+                    if (_mode != edit.mode)
+                    {
+                        edit.mode = _mode;
+                        Reload();
+                    }
+                    this.searchString = searchField.OnGUI(rss[1], this.searchString);
                     base.OnGUI(rs[1]);
                 }
                 protected override void SearchChanged(string newSearch)
@@ -433,7 +439,12 @@ namespace IFramework.UI
             FolderField GenF = new FolderField();
             FolderField CollectF = new FolderField();
             FolderField ScriptGenF = new FolderField();
-
+            private enum Mode
+            {
+                Layer,
+                Directory,
+            }
+            [UnityEngine.SerializeField] private Mode mode;
             [UnityEngine.SerializeField] private TreeViewState layer_state = new TreeViewState();
             [UnityEngine.SerializeField] private string layerObjectPath;
             private UILayerData layerObject;
@@ -443,6 +454,7 @@ namespace IFramework.UI
                 var last = EditorTools.GetFromPrefs<UILayerEdit>(name, false);
                 if (last != null)
                 {
+                    mode = last.mode;
                     layer_state = last.layer_state;
                     layerObjectPath = last.layerObjectPath;
                     layerObject = AssetDatabase.LoadAssetAtPath<UILayerData>(layerObjectPath);
@@ -461,7 +473,7 @@ namespace IFramework.UI
             public override void OnGUI()
             {
                 var rect = EditorGUILayout.GetControlRect(GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
-                var sps = EditorTools.RectEx.HorizontalSplit(rect, 20);
+                var sps = EditorTools.RectEx.HorizontalSplit(rect, 20,8);
                 var last = layerObject;
                 layerObject = EditorGUI.ObjectField(sps[0], "Layer Object", layerObject, typeof(UILayerData), false) as UILayerData;
 
@@ -474,7 +486,7 @@ namespace IFramework.UI
                 {
 
                     rect = sps[1];
-                    var rs = EditorTools.RectEx.HorizontalSplit(rect, rect.height - 10);
+                    var rs = EditorTools.RectEx.HorizontalSplit(rect, rect.height - 10,0);
                     view.OnGUI(rs[0]);
                     Tool(rs[1]);
                 }

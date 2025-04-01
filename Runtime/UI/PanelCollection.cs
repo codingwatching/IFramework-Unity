@@ -29,7 +29,7 @@ namespace IFramework.UI
             public bool isResourcePath;
             public int layer;
             public bool fullScreen;
-            public int order;
+            //public int order;
             //public string ScriptPath;
         }
         public List<Data> datas = new List<Data>();
