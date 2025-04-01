@@ -83,17 +83,28 @@ namespace IFramework.UI
 
 
         public GameObjectView parent { get; private set; }
-        public GameObjectView root
+        public GameObjectView root { get; private set; }
+        internal void SetParent(GameObjectView parent)
         {
-            get
+            var parent_last = this.parent;
+            if (parent_last == parent) return;
+            if (parent_last != null)
+                parent_last.children.Remove(this);
+            if (parent != null)
             {
+                parent.children.Add(this);
+                this.parent = parent;
                 var tmp = this;
                 while (tmp.parent != null)
                     tmp = tmp.parent;
-                return tmp;
+                root = tmp;
+            }
+            else
+            {
+                Log.FE("SetParent   Parent Can Not Be Null");
             }
         }
-        internal void SetParent(GameObjectView parent) => this.parent = parent;
+
         public void SetAsChild(GameObjectView view) => view.SetParent(this);
 
 
@@ -167,10 +178,23 @@ namespace IFramework.UI
         protected virtual void OnClearFields() { }
         public void ClearFields()
         {
+            DisposeChildren();
             OnClearFields();
             DisposeEvents();
             DisposeUIEvents();
             ClearWidgetPools();
+        }
+        private void DisposeChildren()
+        {
+            if (children.Count > 0)
+            {
+                for (int i = 0; i < children.Count; i++)
+                {
+                    var child = children[i];
+                    child.ClearFields();
+                }
+                children.Clear();
+            }
         }
 
 
@@ -179,8 +203,7 @@ namespace IFramework.UI
 
 
 
-
-
+        private List<GameObjectView> children = new List<GameObjectView>();
 
 
         public T CreateWidget<T>(GameObject gameObject) where T : GameObjectView, new()
@@ -191,8 +214,8 @@ namespace IFramework.UI
         }
         public T InitWidget<T>(T view, GameObject gameObject) where T : GameObjectView
         {
-            view.SetParent(this);
             view.SetGameObject(gameObject);
+            view.SetParent(this);
             return view;
         }
 
