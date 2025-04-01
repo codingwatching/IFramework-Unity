@@ -188,7 +188,7 @@ namespace IFramework.UI
                                 {
                                     depth = 0,
                                     displayName = $"{layerNames[i]}\t\t {findList.Count} : {datas.Count}",
-                                    id = -i - 100,
+                                    id = -i - layerStartIndex,
                                 };
                                 layer.parent = root;
                                 rows.Add(layer);
@@ -222,7 +222,7 @@ namespace IFramework.UI
                         foreach (var dir in map.Keys)
                         {
                             var findList = map[dir];
-                            int index = -100;
+                            int index = -dirStartIndex;
                             if (string.IsNullOrEmpty(searchString))
                             {
                                 TreeViewItem layer = new TreeViewItem()
@@ -381,17 +381,20 @@ namespace IFramework.UI
                     }
                     menu.ShowAsContext();
                 }
+                static int dirStartIndex { get { return 10000; } }
+                static int layerStartIndex { get { return 100; } }
+
                 private void ExpandedParent(Data data)
                 {
                     if (edit.mode == Mode.Layer)
                     {
-                        SetExpanded(-layerNames.ToList().IndexOf(data.layer.ToString()) - 100, true);
+                        SetExpanded(-layerNames.ToList().IndexOf(data.layer.ToString()) - layerStartIndex, true);
                     }
                     else
                     {
                         var _dir = Path.GetDirectoryName(data.path);
                         var index = dirs.IndexOf(_dir);
-                        SetExpanded(-index-100, true);
+                        SetExpanded(-index - dirStartIndex, true);
 
                     }
                 }
@@ -418,7 +421,7 @@ namespace IFramework.UI
                 public override void OnGUI(Rect rect)
                 {
                     var rs = EditorTools.RectEx.HorizontalSplit(rect, 20);
-                    var rss = RectEx.VerticalSplit(rs[0], 100,10);
+                    var rss = RectEx.VerticalSplit(rs[0], 100, 10);
                     var _mode = (Mode)EditorGUI.EnumPopup(rss[0], edit.mode);
                     if (_mode != edit.mode)
                     {
@@ -445,7 +448,8 @@ namespace IFramework.UI
                 Directory,
             }
             [UnityEngine.SerializeField] private Mode mode;
-            /*[UnityEngine.SerializeField] */private TreeViewState layer_state = new TreeViewState();
+            /*[UnityEngine.SerializeField] */
+            private TreeViewState layer_state = new TreeViewState();
             [UnityEngine.SerializeField] private string layerObjectPath;
             private UILayerData layerObject;
 
@@ -473,7 +477,7 @@ namespace IFramework.UI
             public override void OnGUI()
             {
                 var rect = EditorGUILayout.GetControlRect(GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
-                var sps = EditorTools.RectEx.HorizontalSplit(rect, 20,8);
+                var sps = EditorTools.RectEx.HorizontalSplit(rect, 20, 8);
                 var last = layerObject;
                 layerObject = EditorGUI.ObjectField(sps[0], "Layer Object", layerObject, typeof(UILayerData), false) as UILayerData;
 
@@ -486,7 +490,7 @@ namespace IFramework.UI
                 {
 
                     rect = sps[1];
-                    var rs = EditorTools.RectEx.HorizontalSplit(rect, rect.height - 10,0);
+                    var rs = EditorTools.RectEx.HorizontalSplit(rect, rect.height - 10, 0);
                     view.OnGUI(rs[0]);
                     Tool(rs[1]);
                 }
