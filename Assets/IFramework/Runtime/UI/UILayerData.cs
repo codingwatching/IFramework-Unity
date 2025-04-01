@@ -18,7 +18,7 @@ namespace IFramework.UI
         public List<string> GetLayerNames() { return layers; }
         public int LayerNameToIndex(string layer) => layers.IndexOf(layer);
         public string GetLayerName(int layer) => layers[layer];
-        public bool ignoreOrder = true;
+        //public bool ignoreOrder = true;
         [UnityEngine.SerializeField]
         private List<string> layers = new List<string> {
             "Background" ,

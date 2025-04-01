@@ -1,17 +1,21 @@
 {
+    "mode": 0,
     "layer_state": {
         "scrollPos": {
             "x": 0.0,
             "y": 0.0
         },
         "m_SelectedIDs": [
-            7
+            -100
         ],
-        "m_LastClickedID": 7,
+        "m_LastClickedID": -100,
         "m_ExpandedIDs": [
+            -101,
+            -100,
             0,
             1,
-            2
+            2,
+            3
         ],
         "m_RenameOverlay": {
             "m_UserAcceptedRename": false,

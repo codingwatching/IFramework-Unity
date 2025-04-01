@@ -293,26 +293,7 @@ namespace IFramework.UI
                 ScriptPathCollection.SaveScriptsData();
                 return change;
             }
-            public static bool ValidOrders(PanelCollection collection)
-            {
-                bool change = false;
-                var layers = collection.datas.Select(x => x.layer).Distinct().ToList();
-                foreach (var layer in layers)
-                {
-                    var list = collection.datas.Where(x => x.layer == layer).ToList();
-                    list.Sort((x, y) => { return x.order >= y.order ? 1 : -1; });
-                    for (var i = 0; i < list.Count; i++)
-                    {
-                        var data = list[i];
-                        if (data.order != i)
-                        {
-                            data.order = i;
-                            change = true;
-                        }
-                    }
-                }
-                return change;
-            }
+
             public static PanelCollection Collect(Plan plan)
             {
                 string path = plan.collectionJsonPath;
@@ -321,12 +302,6 @@ namespace IFramework.UI
                     collect = new PanelCollection();
                 else
                     collect = JsonUtility.FromJson<PanelCollection>(File.ReadAllText(path));
-
-
-
-
-
-
                 var paths = AssetDatabase.FindAssets("t:prefab", new string[] { plan.PanelCollectPath })
                     .Select(guid => AssetDatabase.GUIDToAssetPath(guid))
                     .Where(path => AssetDatabase.LoadAssetAtPath<UIPanel>(path) != null).ToList();
@@ -356,12 +331,9 @@ namespace IFramework.UI
                           path = path,
                           layer = 0,
                           fullScreen = false,
-                          order = int.MaxValue
                       });
                   });
                 var change = CollectScripPaths(collect, plan);
-
-                change |= ValidOrders(collect);
                 if (remove != 0 || _new.Count > 0 || change)
                     GenCollectionJson(plan, collect);
                 return collect;

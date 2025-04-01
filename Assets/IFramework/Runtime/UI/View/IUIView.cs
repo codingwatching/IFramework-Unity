@@ -66,8 +66,6 @@ namespace IFramework.UI
 
         void IUIView.OnBecameInvisible()
         {
-            Log.FL($"UIView: {this.GetType().Name} OnBecameInvisible");
-
             OnBecameInvisible();
         }
     }

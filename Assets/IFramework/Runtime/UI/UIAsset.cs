@@ -39,7 +39,7 @@ namespace IFramework.UI
         public virtual Canvas GetCanvas() { return null; }
 
         public PanelCollection.Data GetData(string path) => collection?.GetData(path);
-        public bool GetIgnoreOrder() => layer.ignoreOrder;
+        //public bool GetIgnoreOrder() => layer.ignoreOrder;
         public List<string> GetLayerNames() => layer.GetLayerNames();
         public virtual int GetPanelLayer(string path)
         {
@@ -48,13 +48,13 @@ namespace IFramework.UI
                 return data.layer;
             return 0;
         }
-        public virtual int GetPanelLayerOrder(string path)
-        {
-            var data = GetData(path);
-            if (data != null)
-                return data.order;
-            return 0;
-        }
+        //public virtual int GetPanelLayerOrder(string path)
+        //{
+        //    var data = GetData(path);
+        //    if (data != null)
+        //        return data.order;
+        //    return 0;
+        //}
         public virtual bool GetPanelFullScreen(string path)
         {
             var data = GetData(path);

@@ -80,13 +80,7 @@ namespace IFramework.UI
                 raycast = ray.rect.gameObject.AddComponent<Empty4Raycast>();
                 HideRayCast();
             }
-            //private void SwitchLayerVisible(string layerName, bool visible)
-            //{
-            //    var layer = GetRTLayerData(layerName);
-            //    layer.group.alpha = visible ? 1 : 0;
-            //    layer.group.blocksRaycasts = visible ? true : false;
-            //    layer.group.interactable = visible ? true : false;
-            //}
+
             public RuntimeUILayerData GetRTLayerData(string layer) => _layers[layer];
 
 
@@ -125,30 +119,7 @@ namespace IFramework.UI
                 var layer = module.GetPanelLayer(path);
                 var layerName = module.GetLayerName(layer);
                 var list = GetPanelsByLayerName(layerName);
-                if (module.GetIgnoreOrder())
-                {
-                    SetAsLastOrder(path, panel);
-                }
-                else
-                {
-                    if (list.Contains(panel)) return;
-                    int order = module.GetPanelLayerOrder(path);
-                    bool instert = false;
-                    for (int i = 0; i < list.Count; i++)
-                    {
-                        if (module.GetPanelLayerOrder(list[i].GetPath()) > order)
-                        {
-                            var sbindex = list[i].GetSiblingIndex();
-                            panel.SetSiblingIndex(sbindex);
-                            list.Insert(sbindex, panel);
-                            instert = true;
-                            break;
-                        }
-                    }
-                    if (!instert)
-                        list.Add(panel);
-
-                }
+                SetAsLastOrder(path, panel);
 
             }
             public UIPanel GetTopShowPanel(int layer)
