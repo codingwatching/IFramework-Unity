@@ -19,8 +19,6 @@ namespace IFramework.UI
     [AddComponentMenu("")]
     public class ScriptCreatorContext : MonoBehaviour
     {
-        [HideInInspector] public bool executeSubContext;
-        [HideInInspector] public List<GameObject> ignore = new List<GameObject>();
         [HideInInspector] public List<MarkContext> marks = new List<MarkContext>();
         private const string flag = "@sm";
 
@@ -111,12 +109,6 @@ namespace IFramework.UI
 
             bool exist = false;
             var prefab_list = new List<string>();
-            if (this.executeSubContext)
-            {
-                var all = GetAllMarks();
-                all.RemoveAll(x => marks.Contains(x));
-                prefab_list = all.Select(x => x.fieldName).ToList();
-            }
             Dictionary<string, List<MarkContext>> map = new Dictionary<string, List<MarkContext>>();
             for (int i = 0; i < marks.Count; i++)
             {
@@ -168,18 +160,7 @@ namespace IFramework.UI
 
         public List<MarkContext> GetAllMarks()
         {
-
-            var creators = gameObject.GetComponentsInChildren<ScriptCreatorContext>(true);
-            List<MarkContext> result = new List<MarkContext>(this.marks);
-            foreach (var creator in creators)
-            {
-                foreach (var mark in creator.marks)
-                {
-                    if (result.Any(x => x.gameObject == mark.gameObject)) continue;
-                    result.Add(mark);
-                }
-            }
-            return result.Distinct().ToList();
+            return this.marks;
         }
 
         public MarkContext GetMark(GameObject go)
@@ -190,8 +171,6 @@ namespace IFramework.UI
         public void RemoveEmpty()
         {
             marks.RemoveAll(x => x.gameObject == null);
-            ignore.RemoveAll(x => x.gameObject == null);
-
         }
         public void CollectFlagGameObjects(Transform transform, List<GameObject> goes)
         {

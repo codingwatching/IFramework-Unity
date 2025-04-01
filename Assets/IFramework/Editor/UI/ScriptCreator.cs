@@ -33,60 +33,11 @@ namespace IFramework.UI
         public string rootPath => gameObject.transform.GetPath();
         public GameObject gameObject { get; private set; }
         public ScriptCreatorContext context { get; private set; }
-        public bool executeSubContext
-        {
-            get
-            {
-                var context = this.context;
-                if (context != null)
-
-                    return context.executeSubContext;
-                return false;
-            }
-            set
-            {
-                var context = this.context;
-
-                if (context != null)
-                    context.executeSubContext = value;
-            }
-        }
-        internal void RemoveFromIgnore(List<GameObject> s)
-        {
-
-            var find = s.FindAll(x => !CouldMark(x));
-            context.ignore.RemoveAll(x => find.Contains(x));
-            SaveContext();
-        }
+  
 
         public string ToValidFiledName(string src) => ScriptCreatorContext.ToValidFiledName(src);
 
-        public void AddToIgnore(List<GameObject> s)
-        {
-            var context = this.context;
-            var find = s.FindAll(x => !CouldMark(x));
 
-            context.ignore.AddRange(find);
-            context.ignore = context.ignore.Distinct().ToList();
-            SaveContext();
-        }
-        public bool IsIgnore(GameObject go)
-        {
-            var ignorePaths = context?.ignore;
-            if (ignorePaths == null) return false;
-            for (int i = 0; i < ignorePaths.Count; i++)
-            {
-                var _path = ignorePaths[i];
-                if (go == _path) return true;
-                var tmp = go.transform;
-                while (tmp != null)
-                {
-                    if (tmp.gameObject == _path) return true;
-                    tmp = tmp.parent;
-                }
-            }
-            return false;
-        }
 
         public bool IsPrefabInstance(GameObject obj)
         {
@@ -178,11 +129,11 @@ namespace IFramework.UI
         {
             return this.context.marks;
         }
-        public List<ScriptCreatorContext.MarkContext> GetAllMarks()
-        {
-            if (!gameObject) return null;
-            return this.context.GetAllMarks();
-        }
+        //public List<ScriptCreatorContext.MarkContext> GetAllMarks()
+        //{
+        //    if (!gameObject) return null;
+        //    return this.context.GetAllMarks();
+        //}
 
         public void DestroyMarks()
         {

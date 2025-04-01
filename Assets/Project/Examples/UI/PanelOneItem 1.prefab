@@ -11,9 +11,8 @@ GameObject:
   - component: {fileID: 4612104691419832898}
   - component: {fileID: 5903667770138119404}
   - component: {fileID: 6003377182767602696}
-  - component: {fileID: -5710262887339861492}
   m_Layer: 5
-  m_Name: PanelOneItem
+  m_Name: PanelOneItem 1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -77,21 +76,3 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &-5710262887339861492
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6257145239160841830}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 83247599dd1defd4dbd7f76bc2bb8b4a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ignore: []
-  marks:
-  - gameObject: {fileID: 6257145239160841830}
-    fieldName: PanelOneItem
-    fieldType: UnityEngine.UI.Image
-  Prefabs: []

@@ -53,6 +53,7 @@ namespace IFramework.UI
             }
             if (this.gameObject != gameObject)
             {
+                ClearFields();
                 this.gameObject = gameObject;
                 transform = gameObject.transform;
                 context = GetComponent<ScriptCreatorContext>(string.Empty);
