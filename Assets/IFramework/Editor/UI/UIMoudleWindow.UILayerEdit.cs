@@ -459,11 +459,11 @@ namespace IFramework.UI
                 if (last != null)
                 {
                     mode = last.mode;
-                    //layer_state = last.layer_state;
+                    layer_state = EditorTools.GetFromPrefs<TreeViewState>(name, true);
                     layerObjectPath = last.layerObjectPath;
                     layerObject = AssetDatabase.LoadAssetAtPath<UILayerData>(layerObjectPath);
                 }
-
+                if (layer_state == null) layer_state = new TreeViewState();
                 Fresh();
             }
             public override void OnDisable()
@@ -471,7 +471,7 @@ namespace IFramework.UI
                 layerObjectPath = string.Empty;
                 if (layerObject != null)
                     layerObjectPath = AssetDatabase.GetAssetPath(layerObject);
-
+                EditorTools.SaveToPrefs<TreeViewState>(layer_state, name, true);
                 EditorTools.SaveToPrefs<UILayerEdit>(this, name, false);
             }
             public override void OnGUI()
