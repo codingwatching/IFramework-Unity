@@ -89,8 +89,7 @@ namespace IFramework.UI
             private bool CouldDrawChildren(GameObject go)
             {
                 for (int i = 0; i < go.transform.childCount; i++)
-                    if (context.executeSubContext) return true;
-                    else if (context.CouldMark(go.transform.GetChild(i).gameObject))
+                     if (context.CouldMark(go.transform.GetChild(i).gameObject))
                         return true;
                 return false;
             }
@@ -114,11 +113,7 @@ namespace IFramework.UI
             }
             void AddChildrenRecursive(GameObject go, TreeViewItem root, IList<TreeViewItem> rows)
             {
-                if (go == null) return;
-                if (!context.executeSubContext)
-                    if (!context.CouldMark(go))
-                        return;
-
+                if (go == null || !context.CouldMark(go)) return;
                 TreeViewItem item = null;
                 if (CouldDraw(go))
                 {
@@ -160,9 +155,6 @@ namespace IFramework.UI
                 }
                 float indet = this.GetContentIndent(args.item);
                 var first = EditorTools.RectEx.Zoom(args.GetCellRect(0), TextAnchor.MiddleRight, new Vector2(-indet, 0));
-
-                //if (!GetActive(go))
-                //    GUI.contentColor = Color.grey;
                 if (context.IsPrefabInstance(go))
                     GUI.color = new Color(0.1f, 0.7f, 1f, 1);
 
@@ -182,16 +174,11 @@ namespace IFramework.UI
                         rect = args.GetCellRect(2);
                         GUI.Label(rect, sm.fieldName);
                     }
-                    GUI.enabled = false;
-                    if (!could)
-                        GUI.Toggle(args.GetCellRect(3), context.IsIgnore(go), "");
-                    GUI.enabled = true;
                 }
                 GUI.color = Color.white;
 
                 if (go == _ping)
                     GUI.Label(RectEx.Zoom(args.rowRect, TextAnchor.MiddleCenter, -8), "", "LightmapEditorSelectedHighlight");
-
             }
             public override void OnGUI(Rect rect)
             {
@@ -251,7 +238,6 @@ namespace IFramework.UI
                 List<GameObject> gameobjects = new List<GameObject>();
                 var marks = new List<GameObject>();
                 var selection = this.GetSelection().Select(x => GetGameObject(x)).ToList();
-                //s.RemoveAll(x => sc.IsPrefabInstance(x));
                 if (selection.Count == 0) return;
                 var normal = selection.FindAll(y => context.CouldMark(y));
                 var prefab = selection.FindAll(y => !context.CouldMark(y));
@@ -318,15 +304,7 @@ namespace IFramework.UI
                     Reload();
 
                 });
-                menu.AddSeparator("");
-                CreateMenu(menu, "Add To Ignore", prefab.Count == 0, () =>
-                {
-                    context.AddToIgnore(prefab);
-                });
-                CreateMenu(menu, "Remove From Ignore", prefab.Count == 0, () =>
-                {
-                    context.RemoveFromIgnore(prefab);
-                });
+  
                 menu.AddSeparator("");
                 CreateMenu(menu, "Fresh FieldNames", false, () =>
                 {
@@ -395,12 +373,9 @@ namespace IFramework.UI
             _tree.Reload();
         }
 
-        private ScriptCreator _creator;
         private Tree _tree;
-        //private bool executeSubContext;
         public ScriptCreatorFieldsDrawer(ScriptCreator creator, TreeViewState state, SearchType searchType)
         {
-            this._creator = creator;
             if (state == null)
             {
                 state = new TreeViewState();
@@ -410,23 +385,7 @@ namespace IFramework.UI
         public void OnGUI()
         {
             var position = EditorGUILayout.GetControlRect(GUILayout.ExpandHeight(true));
-            //var rs = RectEx.HorizontalSplit(position, isExpanded ? 20 : count * 20 + 20);
-            //EditorGUI.PropertyField(rs[0], _obj.FindProperty(nameof(ScriptCreatorContext.Prefabs)));
-    
-            //position = rs[1];
-          var  rs = RectEx.HorizontalSplit(position, 20);
-            bool _executeSubContext = EditorGUI.Toggle(rs[0], "Execute Sub Context", _creator.executeSubContext);
-
-
-
-
-            if (_executeSubContext != _creator.executeSubContext)
-            {
-                _creator.executeSubContext = _executeSubContext;
-                _creator.SaveContext();
-                _tree.Reload();
-            }
-            _tree.OnGUI(rs[1]);
+            _tree.OnGUI(position);
         }
 
         internal SearchType GetSearchType() => _tree.searchType;

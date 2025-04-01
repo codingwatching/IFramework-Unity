@@ -252,8 +252,8 @@ namespace IFramework.UI
             private void Fields(string source, ScriptCreator creater, out string field, out string find)
             {
                 var marks = creater.GetMarks();
-                if (creater.executeSubContext)
-                    marks = creater.GetAllMarks();
+                //if (creater.executeSubContext)
+                //    marks = creater.GetAllMarks();
 
                 StringBuilder sb_field = new StringBuilder();
                 StringBuilder sb_find = new StringBuilder();
@@ -264,11 +264,7 @@ namespace IFramework.UI
                     for (int i = 0; i < marks.Count; i++)
                     {
                         var mark = marks[i];
-                        if (creater.executeSubContext)
-                        {
-                            if (creater.IsIgnore(mark.gameObject))
-                                continue;
-                        }
+               
                         string fieldType = mark.fieldType;
                         string fieldName = mark.fieldName;
 
