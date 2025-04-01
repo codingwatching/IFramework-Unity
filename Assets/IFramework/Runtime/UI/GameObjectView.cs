@@ -83,7 +83,16 @@ namespace IFramework.UI
 
 
         public GameObjectView parent { get; private set; }
-        public GameObjectView root { get; private set; }
+        public GameObjectView root
+        {
+            get
+            {
+                var tmp = this;
+                while (tmp.parent != null)
+                    tmp = tmp.parent;
+                return tmp;
+            }
+        }
         internal void SetParent(GameObjectView parent)
         {
             var parent_last = this.parent;
@@ -94,10 +103,6 @@ namespace IFramework.UI
             {
                 parent.children.Add(this);
                 this.parent = parent;
-                var tmp = this;
-                while (tmp.parent != null)
-                    tmp = tmp.parent;
-                root = tmp;
             }
             else
             {
