@@ -3,7 +3,9 @@
         "x": 0.0,
         "y": 0.0
     },
-    "m_SelectedIDs": [],
+    "m_SelectedIDs": [
+        0
+    ],
     "m_LastClickedID": 0,
     "m_ExpandedIDs": [
         -100

@@ -1,6 +1,6 @@
 {
-    "GenPath": "",
-    "panelPath": "",
+    "GenPath": "Assets/Lua/Lua/TestUI/",
+    "panelPath": "Assets/Project/Examples/UI/PanelOne.prefab",
     "state": {
         "scrollPos": {
             "x": 0.0,
@@ -32,6 +32,6 @@
         "m_SearchString": ""
     },
     "_searchType": 0,
-    "config_path": "",
-    "_type": 0
+    "config_path": "Assets/Lua/Lua/New Lua Env Config.asset",
+    "_type": 1
 }

@@ -9,14 +9,12 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Xml.Linq;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using static IFramework.EditorTools;
 using static IFramework.UI.PanelCollection;
 using static IFramework.UI.UIModuleWindow.UICollectData;
-using static UnityEditor.Experimental.GraphView.GraphView;
 
 namespace IFramework.UI
 {
@@ -322,14 +320,17 @@ namespace IFramework.UI
                     }
                     if (GUI.Button(args.GetCellRect(6), EditorGUIUtility.IconContent("d_editicon.sml"), EditorStyles.iconButton))
                     {
-                        if (!string.IsNullOrEmpty(seg.ScriptPath))
-                        {
-                            UnityEditorInternal.InternalEditorUtility.OpenFileAtLineExternal(seg.ScriptPath, 0);
-                        }
-                        else
-                        {
-                            window.ShowNotification(new GUIContent($"None Script for {data.name}"));
-                        }
+                        GameObject go = data.isResourcePath ? Resources.Load<GameObject>(data.path) : AssetDatabase.LoadAssetAtPath<GameObject>(data.path);
+                        window.SwitchToGenCode(go);
+                        //return;
+                        //if (!string.IsNullOrEmpty(seg.ScriptPath))
+                        //{
+                        //    UnityEditorInternal.InternalEditorUtility.OpenFileAtLineExternal(seg.ScriptPath, 0);
+                        //}
+                        //else
+                        //{
+                        //    window.ShowNotification(new GUIContent($"None Script for {data.name}"));
+                        //}
                     }
                 }
                 private void PingProject(Data data)
@@ -516,7 +517,6 @@ namespace IFramework.UI
             }
             private void Tool(Rect rect)
             {
-
                 var index = UICollectData.planIndex;
                 GUILayout.BeginHorizontal();
                 var plans = UICollectData.plans;

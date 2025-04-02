@@ -94,6 +94,18 @@ namespace IFramework.UI
         {
             return _tabs.Values.First(x => x.GetType() == type);
         }
-
+        private void SwitchToGenCode(GameObject go)
+        {
+            var type = UICollectData.plan.GetSelectType();
+            foreach (var item in _tabs.Values)
+            {
+                if (item.GetType() == type)
+                {
+                    menu.Select(item.name);
+                    (item as UIGenCode).SetGameObject(go);
+                    break;
+                }
+            }
+        }
     }
 }

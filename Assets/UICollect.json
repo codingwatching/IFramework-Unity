@@ -4,22 +4,19 @@
             "path": "Assets/Project/Examples/UI/PanelOne.prefab",
             "isResourcePath": false,
             "layer": 0,
-            "fullScreen": false,
-            "order": 2
+            "fullScreen": false
         },
         {
             "path": "Assets/Project/Examples/UI/PanelTwo.prefab",
             "isResourcePath": false,
             "layer": 0,
-            "fullScreen": false,
-            "order": 1
+            "fullScreen": false
         },
         {
             "path": "Assets/Project/Examples/UI/Panel##Two 1 @.prefab",
             "isResourcePath": false,
             "layer": 0,
-            "fullScreen": false,
-            "order": 0
+            "fullScreen": false
         }
     ]
 }

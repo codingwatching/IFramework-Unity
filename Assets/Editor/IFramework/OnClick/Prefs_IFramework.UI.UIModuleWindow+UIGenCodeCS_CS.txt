@@ -1,6 +1,6 @@
 {
     "GenPath": "Assets/Project/Examples/UI/",
-    "panelPath": "Assets/Project/Examples/UI/PanelTwo.prefab",
+    "panelPath": "Assets/Project/Examples/UI/PanelOne.prefab",
     "state": {
         "scrollPos": {
             "x": 0.0,
