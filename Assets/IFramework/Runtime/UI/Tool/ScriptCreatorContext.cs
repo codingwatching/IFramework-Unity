@@ -19,9 +19,7 @@ namespace IFramework.UI
     [AddComponentMenu("")]
     public class ScriptCreatorContext : MonoBehaviour
     {
-        [HideInInspector] public List<MarkContext> marks = new List<MarkContext>();
-        private const string flag = "@sm";
-
+        [HideInInspector][SerializeField] internal List<MarkContext> marks = new List<MarkContext>();
         [System.Serializable]
         public class MarkContext
         {
@@ -29,51 +27,11 @@ namespace IFramework.UI
             public string fieldName;
             public string fieldType;
         }
-        public MarkContext AddMark(GameObject go, string type, bool add_flag)
+        public static bool IsLegalFieldName(string src)
         {
-            var find = marks.Find(x => x.gameObject == go);
-
-            if (find == null)
-            {
-                find = new MarkContext() { gameObject = go, fieldType = type };
-                if (add_flag)
-                {
-                    AddMarkFlag(go);
-                }
-                marks.Add(find);
-            }
-            else
-            {
-                find.fieldType = type;
-            }
-            ValidateMarkFieldName(find);
-            return find;
+            if (string.IsNullOrEmpty(src)) return false;
+            return Regex.IsMatch(src, @"^[_a-zA-Z][_a-zA-Z0-9]*$");
         }
-        private void AddMarkFlag(GameObject go)
-        {
-            if (go == gameObject) return;
-            string name = go.name;
-            if (name.Contains(flag)) return;
-            go.name += flag;
-        }
-        public void RemoveMark(GameObject go, bool remove_flag)
-        {
-            if (remove_flag)
-                RemoveMarkFlag(go);
-            marks.RemoveAll(x => x.gameObject == go);
-        }
-        private void RemoveMarkFlag(GameObject go)
-        {
-            string name = go.name;
-            if (!name.Contains(flag)) return;
-            go.name = name.Replace(flag, "");
-        }
-        private static bool IsLegalFieldName(string self)
-        {
-            if (string.IsNullOrEmpty(self)) return false;
-            return Regex.IsMatch(self, @"^[_a-zA-Z][_a-zA-Z0-9]*$");
-        }
-
         public static string ToValidFiledName(string src)
         {
             var m = Regex.Matches(src.Replace(" ", "_"), "[_a-zA-Z0-9]");
@@ -94,95 +52,7 @@ namespace IFramework.UI
             return sb.ToString();
 
         }
-        private void ValidateMarkFieldName(MarkContext mark)
-        {
 
-            if (!IsLegalFieldName(mark.fieldName)) mark.fieldName = mark.gameObject.name.Replace(flag, "");
-
-            mark.fieldName = ToValidFiledName(mark.fieldName);
-
-        }
-
-        public bool HandleSameFieldName(out string same, Func<GameObject, bool> fixedName)
-        {
-            same = "";
-
-            bool exist = false;
-            var prefab_list = new List<string>();
-            Dictionary<string, List<MarkContext>> map = new Dictionary<string, List<MarkContext>>();
-            for (int i = 0; i < marks.Count; i++)
-            {
-                var mark = marks[i];
-                var _fixed = fixedName(mark.gameObject);
-                if (!_fixed)
-                {
-                    if (!map.ContainsKey(mark.fieldName))
-                        map.Add(mark.fieldName, new List<MarkContext>());
-                    map[mark.fieldName].Add(mark);
-                }
-                else
-                {
-                    prefab_list.Add(mark.fieldName);
-                }
-            }
-            foreach (var item in map)
-            {
-                if (item.Value.Count > 1 || prefab_list.Contains(item.Key))
-                {
-                    exist = true;
-                    var list = item.Value;
-                    same += $"{list[0].fieldName}  ";
-
-                    for (int i = 0; i < list.Count; i++)
-                    {
-                        var cur = list[i];
-                        list[i].fieldName += $"_{i}";
-                        var sameParrent = list.FindAll(x => x.gameObject.transform.parent == cur.gameObject.transform.parent);
-                        if (sameParrent.Count != 1)
-                            for (int i2 = 0; i2 < sameParrent.Count; i2++)
-                            {
-                                var __same = sameParrent[i2];
-                                __same.gameObject.transform.name = __same.fieldName + flag;
-                            }
-                    }
-                }
-            }
-            return exist;
-        }
-        public void DestroyMarks()
-        {
-            for (int i = 0; i < marks.Count; i++)
-            {
-                RemoveMarkFlag(marks[i].gameObject);
-            }
-            marks.Clear();
-        }
-
-        public List<MarkContext> GetAllMarks()
-        {
-            return this.marks;
-        }
-
-        public MarkContext GetMark(GameObject go)
-        {
-            return marks.Find(x => x.gameObject == go);
-        }
-
-        public void RemoveEmpty()
-        {
-            marks.RemoveAll(x => x.gameObject == null);
-        }
-        public void CollectFlagGameObjects(Transform transform, List<GameObject> goes)
-        {
-            if (transform.name.Contains(flag))
-            {
-                goes.Add(transform.gameObject);
-            }
-            for (int i = 0; i < transform.childCount; i++)
-            {
-                CollectFlagGameObjects(transform.GetChild(i), goes);
-            }
-        }
 
         public GameObject FindPrefab(string name)
         {
@@ -193,6 +63,6 @@ namespace IFramework.UI
             return null;
         }
 
-        public List<GameObject> Prefabs = new List<GameObject>();
+        [SerializeField] internal List<GameObject> Prefabs = new List<GameObject>();
     }
 }

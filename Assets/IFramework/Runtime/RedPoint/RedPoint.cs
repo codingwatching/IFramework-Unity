@@ -8,16 +8,16 @@ using System.Collections.Generic;
 
 namespace IFramework.RedPoint
 {
-    public class InternalRedPoint
+    internal class RedPoint
     {
         public string parent_key;
         public string key;
-        public Dictionary<string, InternalRedPoint> children = new Dictionary<string, InternalRedPoint>();
+        public Dictionary<string, RedPoint> children = new Dictionary<string, RedPoint>();
         private int count;
         private int count_dirty;
 
         private bool hasValue = false;
-        public InternalRedPoint(string key, string parent_key)
+        public RedPoint(string key, string parent_key)
         {
             this.parent_key = parent_key;
             this.key = key;
@@ -27,14 +27,14 @@ namespace IFramework.RedPoint
         {
             return hasValue ? count : 0;
         }
-        public void AddChild(InternalRedPoint p)
+        public void AddChild(RedPoint p)
         {
             var key = p.key;
             if (children.ContainsKey(key))
                 return;
             children.Add(key, p);
         }
-        public void RemoveChild(InternalRedPoint p)
+        public void RemoveChild(RedPoint p)
         {
             var key = p.key;
             if (!children.ContainsKey(key))

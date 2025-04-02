@@ -56,10 +56,7 @@ namespace IFramework.UI
                         {
                            headerContent=new GUIContent("FieldName")
                         },
-                        new MultiColumnHeaderState.Column()
-                        {
-                           headerContent=new GUIContent("Ignore")
-                        },
+        
 
                 })); ;
                 Reload();
@@ -158,15 +155,15 @@ namespace IFramework.UI
                 if (context.IsPrefabInstance(go))
                     GUI.color = new Color(0.1f, 0.7f, 1f, 1);
 
-                bool could = context.CouldMark(go);
-                var image = could ? "greenLight" : "d_redLight";
-                GUI.Label(first, new GUIContent(args.label, EditorGUIUtility.IconContent(image).image));
+                //bool could = context.CouldMark(go);
+                //var image = could ? "greenLight" : "d_redLight";
+                GUI.Label(first, args.label);
 
                 if (go != null)
                 {
                     var sm = context.GetMark(go);
-                    if (!could)
-                        sm = context.GetPrefabMark(go);
+                    //if (!could)
+                    //    sm = context.GetPrefabMark(go);
                     if (sm != null)
                     {
                         var rect = args.GetCellRect(1);
@@ -300,7 +297,7 @@ namespace IFramework.UI
                 });
                 CreateMenu(menu, "Destroy All Marks", false, () =>
                 {
-                    context.DestroyMarks();
+                    context.DestroyAllMarks();
                     Reload();
 
                 });
