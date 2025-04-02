@@ -75,10 +75,12 @@ namespace IFramework.UI
                 }
 
             }
-            public void SetGameObject(GameObject go)
+            public void SetGameObject(GameObject go, string scriptPath)
             {
+                GenPath = Path.GetDirectoryName(scriptPath);
                 this.panel = go;
-                GUI.changed = true;
+                SetViewData();
+                //GUI.changed = true;
             }
 
 
@@ -141,9 +143,21 @@ namespace IFramework.UI
             {
 
             }
-    
+
             private void FindDir()
             {
+                if (!string.IsNullOrEmpty(GenPath))
+                {
+
+                    var target = Path.Combine(GenPath, scriptFileName);
+                    if (File.Exists(target))
+                    {
+                        FloderField.SetPath(GenPath);
+                        OnFindDirSuccess();
+                        return;
+                    }
+
+                }
                 string find = AssetDatabase.GetAllAssetPaths().ToList().Find(x => x.EndsWith(scriptFileName));
                 if (string.IsNullOrEmpty(find))
                 {
@@ -267,7 +281,7 @@ namespace IFramework.UI
                     for (int i = 0; i < marks.Count; i++)
                     {
                         var mark = marks[i];
-               
+
                         string fieldType = mark.fieldType;
                         string fieldName = mark.fieldName;
 
