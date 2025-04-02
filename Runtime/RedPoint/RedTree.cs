@@ -7,15 +7,15 @@
 using System.Collections.Generic;
 namespace IFramework.RedPoint
 {
-    public interface ITreeViewer
+    internal interface ITreeViewer
     {
-        void FreshView(List<InternalRedPoint> root);
+        void FreshView(List<RedPoint> root);
     }
     public class RedTree
     {
         private static ITreeViewer viewer;
 
-        public static void SetViewer(ITreeViewer viewer)
+        internal static void SetViewer(ITreeViewer viewer)
         {
 #if UNITY_EDITOR
             RedTree.viewer = viewer;
@@ -31,9 +31,9 @@ namespace IFramework.RedPoint
             return 0;
         }
         private static Dictionary<string, List<RedDot>> red_dot_map = new Dictionary<string, List<RedDot>>();
-        private static Dictionary<string, InternalRedPoint> key_map = new Dictionary<string, InternalRedPoint>();
+        private static Dictionary<string, RedPoint> key_map = new Dictionary<string, RedPoint>();
 
-        private static List<InternalRedPoint> root = new List<InternalRedPoint>();
+        private static List<RedPoint> root = new List<RedPoint>();
         internal static void AddDot(RedDot dot)
         {
             var path = dot.path;
@@ -60,19 +60,19 @@ namespace IFramework.RedPoint
         }
         public static char separator = '/';
 
-        private static InternalRedPoint Find(string key)
+        private static RedPoint Find(string key)
         {
             if (key_map.ContainsKey(key))
                 return key_map[key];
             return null;
         }
 
-        private static InternalRedPoint AddPoint(string parentKey, string key)
+        private static RedPoint AddPoint(string parentKey, string key)
         {
             var _new = Find(key);
             if (_new == null)
             {
-                _new = new InternalRedPoint(key, parentKey);
+                _new = new RedPoint(key, parentKey);
                 key_map.Add(key, _new);
             }
 #if UNITY_EDITOR
@@ -95,8 +95,8 @@ namespace IFramework.RedPoint
 
         }
 
-        private static Queue<InternalRedPoint> dirty = new Queue<InternalRedPoint>();
-        private static Queue<InternalRedPoint> dirty_P = new Queue<InternalRedPoint>();
+        private static Queue<RedPoint> dirty = new Queue<RedPoint>();
+        private static Queue<RedPoint> dirty_P = new Queue<RedPoint>();
 
         private static void FreshParent(string key, Dictionary<string, int> map)
         {
@@ -156,7 +156,7 @@ namespace IFramework.RedPoint
         public static void ReadPath(string key)
         {
             var columns = key.Split(separator);
-            InternalRedPoint last = null;
+            RedPoint last = null;
             for (int j = 0; j < columns.Length; j++)
             {
                 var _pkey = string.Join(separator.ToString(), columns, 0, j);

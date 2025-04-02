@@ -13,7 +13,7 @@ namespace IFramework.UI
     [DisallowMultipleComponent]
     [AddComponentMenu("IFramework/UIPanel")]
 
-    public class UIPanel : MonoBehaviour
+    public class UIPanel : ScriptCreatorContext
     {
         public enum PanelState
         {

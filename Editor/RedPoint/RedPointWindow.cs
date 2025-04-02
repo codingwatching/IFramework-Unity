@@ -18,7 +18,7 @@ namespace IFramework.RedPoint
     {
         private class ViewTree : TreeView, ITreeViewer
         {
-            private List<InternalRedPoint> root;
+            private List<RedPoint> root;
             private SearchField field = new SearchField();
             private string _ping;
 
@@ -31,7 +31,7 @@ namespace IFramework.RedPoint
                 this.multiColumnHeader.ResizeToFit();
             }
 
-            public void FreshView(List<InternalRedPoint> root)
+            public void FreshView(List<RedPoint> root)
             {
                 this.root = root;
                 Reload();
@@ -46,7 +46,7 @@ namespace IFramework.RedPoint
                 };
             }
 
-            private void LoopBuild(TreeViewItem parent, InternalRedPoint point, IList<TreeViewItem> list)
+            private void LoopBuild(TreeViewItem parent, RedPoint point, IList<TreeViewItem> list)
             {
 
 
