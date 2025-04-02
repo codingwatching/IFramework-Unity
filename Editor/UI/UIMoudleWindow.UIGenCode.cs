@@ -75,7 +75,11 @@ namespace IFramework.UI
                 }
 
             }
-
+            public void SetGameObject(GameObject go)
+            {
+                this.panel = go;
+                GUI.changed = true;
+            }
 
 
             [SerializeField] private TreeViewState state = new TreeViewState();
@@ -181,7 +185,6 @@ namespace IFramework.UI
                 {
                     AssetDatabase.OpenAsset(panel);
                 }
-
                 GUILayout.EndHorizontal();
                 if (EditorGUI.EndChangeCheck())
                 {
