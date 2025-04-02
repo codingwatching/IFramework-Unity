@@ -333,6 +333,10 @@ namespace IFramework.UI
                           fullScreen = false,
                       });
                   });
+                collect.datas.Sort((x, y) => StringComparer.OrdinalIgnoreCase.Compare(x.name, y.name));
+
+
+
                 var change = CollectScripPaths(collect, plan);
                 if (remove != 0 || _new.Count > 0 || change)
                     GenCollectionJson(plan, collect);
