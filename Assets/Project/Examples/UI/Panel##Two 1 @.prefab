@@ -496,7 +496,6 @@ GameObject:
   - component: {fileID: 8286719379367330606}
   - component: {fileID: 8286719379367330601}
   - component: {fileID: 782860068998906265}
-  - component: {fileID: 4608468274221996861}
   m_Layer: 5
   m_Name: Panel##Two 1 @
   m_TagString: Untagged
@@ -577,20 +576,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66b9abbb23fdd2140adb592f9d23bc1f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &4608468274221996861
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8286719379367330603}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 83247599dd1defd4dbd7f76bc2bb8b4a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  executeSubContext: 0
-  ignore: []
   marks:
   - gameObject: {fileID: 8286719378171024633}
     fieldName: Close

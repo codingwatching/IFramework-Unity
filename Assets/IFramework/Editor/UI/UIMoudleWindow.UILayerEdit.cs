@@ -321,7 +321,7 @@ namespace IFramework.UI
                     if (GUI.Button(args.GetCellRect(6), EditorGUIUtility.IconContent("d_editicon.sml"), EditorStyles.iconButton))
                     {
                         GameObject go = data.isResourcePath ? Resources.Load<GameObject>(data.path) : AssetDatabase.LoadAssetAtPath<GameObject>(data.path);
-                        window.SwitchToGenCode(go);
+                        window.SwitchToGenCode(go, seg.ScriptPath);
                         //return;
                         //if (!string.IsNullOrEmpty(seg.ScriptPath))
                         //{
