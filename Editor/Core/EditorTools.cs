@@ -22,7 +22,7 @@ namespace IFramework
     public partial class EditorTools
     {
         static Dictionary<Type, List<Delegate>> on_addComp = new Dictionary<Type, List<Delegate>>();
-        private static void ObjectFactory_componentWasAdded(Component obj)
+        public static void CallAddComponent(Component obj)
         {
             Type type = obj.GetType();
             List<Delegate> list;
@@ -36,7 +36,7 @@ namespace IFramework
 
         static EditorTools()
         {
-            ObjectFactory.componentWasAdded += ObjectFactory_componentWasAdded;
+            ObjectFactory.componentWasAdded += CallAddComponent;
 
             var result = GetTypes()
                     .SelectMany(x => x.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
