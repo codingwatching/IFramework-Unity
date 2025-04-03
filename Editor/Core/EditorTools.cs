@@ -10,17 +10,55 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
 namespace IFramework
 {
+
     [InitializeOnLoad]
+
     public partial class EditorTools
     {
+        static Dictionary<Type, List<Delegate>> on_addComp = new Dictionary<Type, List<Delegate>>();
+        private static void ObjectFactory_componentWasAdded(Component obj)
+        {
+            Type type = obj.GetType();
+            List<Delegate> list;
+            if (!on_addComp.TryGetValue(type, out list)) return;
+
+            foreach (var del in list)
+            {
+                del.DynamicInvoke(obj);
+            }
+        }
 
         static EditorTools()
         {
+            ObjectFactory.componentWasAdded += ObjectFactory_componentWasAdded;
+
+            var result = GetTypes()
+                    .SelectMany(x => x.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
+                   .Where(x => x.IsDefined(typeof(OnAddComponentAttribute)))
+                   .Where(x =>
+                   {
+                       var param = x.GetParameters();
+                       return param.Length == 1 && param[0].ParameterType.IsSubclassOf(typeof(Component));
+                   })
+                   .Select(x =>
+                   {
+                       var attr = x.GetCustomAttribute<OnAddComponentAttribute>();
+                       return new { method = x, type = attr.type, oder = attr.oder };
+                   });
+            var types = result.Select(x => x.type).Distinct().ToList();
+            foreach (var type in types)
+            {
+                var list = result.Where(x => x.type == type).ToList();
+                list.Sort((x, y) => x.oder - y.oder);
+                on_addComp[type] = new List<Delegate>(list.Select(x => x.method.ToDelegate(null)));
+            }
+
             var directorys = new List<string>()
             {
                 "Assets/Editor",
@@ -36,6 +74,9 @@ namespace IFramework
             Log.logger = new UnityLogger();
             SetLogStatus();
         }
+
+
+
         public static void SetLogStatus()
         {
             Log.enable_F = ProjectConfig.enable_F;
@@ -104,15 +145,89 @@ namespace IFramework
         }
         public static string ToUnixLineEndings(this string self) => self.Replace("\r\n", "\n").Replace("\r", "\n");
 
+        public static Delegate ToDelegate(this MethodInfo method, object target)
+        {
+            var _params = method.GetParameters();
+            Type delegateType = default;
+            var void_func = method.ReturnType == typeof(void);
+
+            Type base_func_type = void_func ? typeof(Action) : typeof(Func<>);
+            if (void_func)
+            {
+                if (_params == null || _params.Length == 0)
+                    delegateType = typeof(Action);
+                else
+                {
+                    if (_params.Length == 1) base_func_type = typeof(Action<>);
+                    else if (_params.Length == 2) base_func_type = typeof(Action<,>);
+                    else if (_params.Length == 3) base_func_type = typeof(Action<,,>);
+                    else if (_params.Length == 4) base_func_type = typeof(Action<,,,>);
+                    else if (_params.Length == 5) base_func_type = typeof(Action<,,,,>);
+                    else if (_params.Length == 6) base_func_type = typeof(Action<,,,,,>);
+                    else if (_params.Length == 7) base_func_type = typeof(Action<,,,,,,>);
+                    else if (_params.Length == 8) base_func_type = typeof(Action<,,,,,,,>);
+                    else if (_params.Length == 9) base_func_type = typeof(Action<,,,,,,,,>);
+                    else if (_params.Length == 10) base_func_type = typeof(Action<,,,,,,,,,>);
+                    else if (_params.Length == 11) base_func_type = typeof(Action<,,,,,,,,,,>);
+                    else if (_params.Length == 12) base_func_type = typeof(Action<,,,,,,,,,,,>);
+                    else if (_params.Length == 13) base_func_type = typeof(Action<,,,,,,,,,,,,>);
+                    else if (_params.Length == 14) base_func_type = typeof(Action<,,,,,,,,,,,,,>);
+                    else if (_params.Length == 15) base_func_type = typeof(Action<,,,,,,,,,,,,,,>);
+                    else if (_params.Length == 16) base_func_type = typeof(Action<,,,,,,,,,,,,,,,>);
+                    delegateType = base_func_type
+                                    .MakeGenericType(_params
+                                            .Select(x => x.ParameterType)
+                                            .ToArray());
+
+                }
+            }
+            else
+            {
+
+                if (_params == null || _params.Length == 0)
+                {
+                    delegateType = base_func_type.MakeGenericType(new Type[] { method.ReturnType });
+                }
+                else
+                {
+                    if (_params.Length == 1) base_func_type = typeof(Func<,>);
+                    else if (_params.Length == 2) base_func_type = typeof(Func<,,>);
+                    else if (_params.Length == 3) base_func_type = typeof(Func<,,,>);
+                    else if (_params.Length == 4) base_func_type = typeof(Func<,,,,>);
+                    else if (_params.Length == 5) base_func_type = typeof(Func<,,,,,>);
+                    else if (_params.Length == 6) base_func_type = typeof(Func<,,,,,,>);
+                    else if (_params.Length == 7) base_func_type = typeof(Func<,,,,,,,>);
+                    else if (_params.Length == 8) base_func_type = typeof(Func<,,,,,,,,>);
+                    else if (_params.Length == 9) base_func_type = typeof(Func<,,,,,,,,,>);
+                    else if (_params.Length == 10) base_func_type = typeof(Func<,,,,,,,,,,>);
+                    else if (_params.Length == 11) base_func_type = typeof(Func<,,,,,,,,,,,>);
+                    else if (_params.Length == 12) base_func_type = typeof(Func<,,,,,,,,,,,,>);
+                    else if (_params.Length == 13) base_func_type = typeof(Func<,,,,,,,,,,,,,>);
+                    else if (_params.Length == 14) base_func_type = typeof(Func<,,,,,,,,,,,,,,>);
+                    else if (_params.Length == 15) base_func_type = typeof(Func<,,,,,,,,,,,,,,,>);
+                    else if (_params.Length == 16) base_func_type = typeof(Func<,,,,,,,,,,,,,,,,>);
+                    delegateType = base_func_type
+                                    .MakeGenericType(_params
+                                            .Select(x => x.ParameterType)
+                                            .Concat(new Type[] { method.ReturnType })
+                                            .ToArray());
+
+                }
+
+            }
+            return method.CreateDelegate(delegateType, target);
+        }
+
+        public static IEnumerable<Type> GetTypes()
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                                 .SelectMany(item => item.GetTypes());
+        }
         public static IEnumerable<Type> GetSubTypesInAssemblies(this Type self)
         {
             if (self.IsInterface)
-                return AppDomain.CurrentDomain.GetAssemblies()
-                                .SelectMany(item => item.GetTypes())
-                                .Where(item => item.GetInterfaces().Contains(self));
-            return AppDomain.CurrentDomain.GetAssemblies()
-                            .SelectMany(item => item.GetTypes())
-                            .Where(item => item.IsSubclassOf(self));
+                return GetTypes().Where(item => item.GetInterfaces().Contains(self));
+            return GetTypes().Where(item => item.IsSubclassOf(self));
         }
 
         public static string ToRegularPath(this string path) => path.Replace('\\', '/');
