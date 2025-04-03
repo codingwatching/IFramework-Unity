@@ -952,6 +952,8 @@ MonoBehaviour:
     fieldType: UnityEngine.UI.Button
   Prefabs:
   - {fileID: 6377835683722098738}
+  adaptType: 60
+  adaptRect: {fileID: 0}
 --- !u!1 &8310221343798258604
 GameObject:
   m_ObjectHideFlags: 0

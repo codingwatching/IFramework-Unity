@@ -584,3 +584,5 @@ MonoBehaviour:
     fieldName: hide
     fieldType: UnityEngine.UI.Button
   Prefabs: []
+  adaptType: 60
+  adaptRect: {fileID: 0}

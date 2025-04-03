@@ -495,7 +495,7 @@ GameObject:
   - component: {fileID: 8286719379367330600}
   - component: {fileID: 8286719379367330606}
   - component: {fileID: 8286719379367330601}
-  - component: {fileID: 782860068998906265}
+  - component: {fileID: 4755784434892130299}
   m_Layer: 5
   m_Name: PanelTwo
   m_TagString: Untagged
@@ -564,7 +564,7 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &782860068998906265
+--- !u!114 &4755784434892130299
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -576,11 +576,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66b9abbb23fdd2140adb592f9d23bc1f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  marks:
-  - gameObject: {fileID: 8286719378171024633}
-    fieldName: Close
-    fieldType: UnityEngine.UI.Button
-  - gameObject: {fileID: 512209309649795875}
-    fieldName: hide
-    fieldType: UnityEngine.UI.Button
+  marks: []
   Prefabs: []
+  adaptType: 60
+  adaptRect: {fileID: 8286719379367330600}
