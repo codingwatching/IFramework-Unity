@@ -4,12 +4,24 @@
 *********************************************************************************/
 using System;
 using UnityEditor;
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace IFramework.UI
 {
     class UIOptimize
     {
+        [MenuItem("CONTEXT/Text/Remove Component")]
+        [MenuItem("CONTEXT/Image/Remove Component")]
+        [MenuItem("CONTEXT/RawImage/Remove Component")]
+        static void RemnoveImage(MenuCommand cmd)
+        {
+            var context = cmd.context;
+            var renderer = (context as MonoBehaviour).GetComponent<CanvasRenderer>();
+            GameObject.DestroyImmediate(context);
+            GameObject.DestroyImmediate(renderer);
+        }
+
         [OnAddComponent(typeof(Text))]
         static void Text(Text txt)
         {
