@@ -296,7 +296,7 @@ namespace IFramework.UI
                     }
                 }
 
-                var prefabs = creater.context.Prefabs;
+                var prefabs = creater.context.GetPrefabs();
                 for (int i = 0; i < prefabs.Count; i++)
                 {
                     string prefabs_name = prefabs[i].name;

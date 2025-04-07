@@ -7,15 +7,34 @@
  *History:        2018.11--
 *********************************************************************************/
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 namespace IFramework.UI
 {
-    [ExecuteAlways]
+    //[ExecuteAlways]
     [DisallowMultipleComponent]
     [AddComponentMenu("IFramework/UIPanel")]
 
-    public class UIPanel : ScriptCreatorContext
+    public class UIPanel : MonoBehaviour, IScriptCreatorContext
     {
+        [SerializeField] private List<GameObject> Prefabs = new List<GameObject>();
+
+        [HideInInspector][SerializeField] private List<MarkContext> marks = new List<MarkContext>();
+
+        List<MarkContext> IScriptCreatorContext.GetMarks() => this.marks;
+
+        List<GameObject> IScriptCreatorContext.GetPrefabs() => Prefabs;
+
+        void IScriptCreatorContext.Read(IScriptCreatorContext @base)
+        {
+            marks = @base.GetMarks();
+            Prefabs = @base.GetPrefabs();
+        }
+
+
+
+
+
         public enum PanelState
         {
             None, OnLoad, OnShow, OnHide, OnClose
@@ -73,7 +92,7 @@ namespace IFramework.UI
         [Space(20)]
         private AdaptType adaptType = AdaptType.Top | AdaptType.Right | AdaptType.Left | AdaptType.Bottom;
         [SerializeField]
-        private RectTransform adaptRect;
+        internal RectTransform adaptRect;
         public static float ScreenWidth { get => _screenWidth; set { _screenWidth = value; } }
         public static float ScreenHeight { get => _screenHeight; set { _screenHeight = value; } }
         public static Rect SafeArea
@@ -92,16 +111,14 @@ namespace IFramework.UI
         private static Rect _safeArea /*= Screen.safeArea*/;
 
 
-        private void Awake()
-        {
-#if UNITY_EDITOR
-            if (Application.isPlaying) return;
-            if (adaptRect == null)
-                adaptRect = GetComponent<RectTransform>();
-
-#endif
-
-        }
+//        private void Awake()
+//        {
+//#if UNITY_EDITOR
+//            if (Application.isPlaying) return;
+//            if (adaptRect == null)
+//                adaptRect = GetComponent<RectTransform>();
+//#endif
+//        }
         private void OnEnable()
         {
             if (adaptRect)
@@ -148,8 +165,6 @@ namespace IFramework.UI
             }
         }
 
-
-
-
+ 
     }
 }

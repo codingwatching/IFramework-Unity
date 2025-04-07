@@ -10,7 +10,6 @@ using UnityEngine;
 using System.Collections.Generic;
 using UnityEditor;
 using System;
-using static IFramework.UI.ScriptCreatorContext;
 
 namespace IFramework.UI
 {
@@ -27,11 +26,11 @@ namespace IFramework.UI
         }
         public string rootPath => gameObject.transform.GetPath();
         public GameObject gameObject { get; private set; }
-        public ScriptCreatorContext context { get; private set; }
+        public IScriptCreatorContext context { get; private set; }
 
-        private List<MarkContext> marks => context.marks;
+        private List<MarkContext> marks => context.GetMarks();
         private const string flag = "@sm";
-        public List<ScriptCreatorContext.MarkContext> GetMarks() => this.context.marks;
+        public List<MarkContext> GetMarks() => marks;
 
 
         public string ToValidFiledName(string src) => ScriptCreatorContext.ToValidFiledName(src);
@@ -73,8 +72,8 @@ namespace IFramework.UI
             ValidateMarkFieldName(find);
             return find;
         }
-        public ScriptCreatorContext.MarkContext AddMark(GameObject go, Type type) => AddMark(go, type.FullName);
-        public ScriptCreatorContext.MarkContext AddMark(GameObject go, string type)
+        public MarkContext AddMark(GameObject go, Type type) => AddMark(go, type.FullName);
+        public MarkContext AddMark(GameObject go, string type)
         {
             if (!CouldMark(go)) return null;
             var sm = AddMark(go, type, !IsPrefabInstance(go));
@@ -125,7 +124,7 @@ namespace IFramework.UI
             CollectFlagGameObjects(gameObject.transform, result);
             result.RemoveAll(x => IsPrefabInstance(x));
 
-            result.RemoveAll(x => context.marks.Find(y => y.gameObject == x) != null);
+            result.RemoveAll(x => context.GetMarks().Find(y => y.gameObject == x) != null);
             if (result.Count == 0) return;
             for (int i = 0; i < result.Count; i++)
                 RemoveMark(result[i], true);
@@ -159,49 +158,35 @@ namespace IFramework.UI
                 this.context = null;
                 if (gameObject != null)
                 {
-                    var cts = gameObject.GetComponents<ScriptCreatorContext>();
+                    var cts = gameObject.GetComponents<IScriptCreatorContext>();
 
-                    if (cts != null && cts.Length > 1)
+                    IScriptCreatorContext _context = null;
+
+                    if (cts != null && cts.Length > 0)
                     {
-                        ScriptCreatorContext other = null;
-                        ScriptCreatorContext _base = null;
+                        IScriptCreatorContext other = null;
+                        IScriptCreatorContext _base = null;
                         for (int i = 0; i < cts.Length; i++)
                         {
                             var ct = cts[i];
                             if (ct.GetType() == typeof(ScriptCreatorContext))
-                            {
                                 _base = ct;
-                            }
                             else
-                            {
                                 other = ct;
-                            }
                         }
                         if (other != null && _base != null)
                         {
-                            other.marks = _base.marks;
-                            other.Prefabs = _base.Prefabs;
-                            GameObject.DestroyImmediate(_base, true);
+                            other.Read(_base);
+                            GameObject.DestroyImmediate(_base as UnityEngine.Object, true);
+                            _context = other;
                         }
+
+                        _context = other == null ? _base : other;
                     }
 
-
-
-
-
-                    var context = gameObject.GetComponent<ScriptCreatorContext>();
-
-
-
-                    if (context == null)
-                    {
-                        context = gameObject.AddComponent<ScriptCreatorContext>();
-                    }
-
-
-
-
-                    this.context = context;
+                    if (_context == null)
+                        _context = gameObject.AddComponent<ScriptCreatorContext>();
+                    this.context = _context;
                     RemoveEmptyMarks();
 
                     SaveContext();
@@ -223,7 +208,7 @@ namespace IFramework.UI
                 var tmp = go.transform;
                 while (true)
                 {
-                    var child = tmp.GetComponent<ScriptCreatorContext>();
+                    var child = tmp.GetComponent<IScriptCreatorContext>();
                     if (child != null) return false;
                     tmp = tmp.parent;
                     if (!IsPrefabInstance(tmp.gameObject))
