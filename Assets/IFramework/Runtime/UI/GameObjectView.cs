@@ -19,8 +19,16 @@ namespace IFramework.UI
     {
         public GameObject gameObject { get; private set; }
         public Transform transform { get; private set; }
-        private ScriptCreatorContext context;
+        private IScriptCreatorContext context;
 
+        GameObject _FindPrefab(List<GameObject> Prefabs, string name)
+        {
+            for (int i = 0; i < Prefabs.Count; i++)
+            {
+                if (Prefabs[i].name == name) return Prefabs[i];
+            }
+            return null;
+        }
 
         Dictionary<string, GameObject> _prefabsName;
         public GameObject FindPrefab(string name)
@@ -31,7 +39,7 @@ namespace IFramework.UI
             {
                 return prefab;
             }
-            prefab = context.FindPrefab(name);
+            prefab = _FindPrefab(context.GetPrefabs(),name);
             if (prefab != null)
             {
                 _prefabsName[name] = prefab;
@@ -56,7 +64,7 @@ namespace IFramework.UI
                 ClearFields();
                 this.gameObject = gameObject;
                 transform = gameObject.transform;
-                context = GetComponent<ScriptCreatorContext>(string.Empty);
+                context = GetComponent<IScriptCreatorContext>(string.Empty);
                 InitComponents();
             }
         }

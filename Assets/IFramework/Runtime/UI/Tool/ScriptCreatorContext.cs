@@ -15,18 +15,29 @@ using UnityEngine;
 using UnityEngine.UI;
 namespace IFramework.UI
 {
+    [System.Serializable]
+    public class MarkContext
+    {
+        public GameObject gameObject;
+        public string fieldName;
+        public string fieldType;
+    }
+
+
+    public interface IScriptCreatorContext
+    {
+        string name { get; }
+        List<MarkContext> GetMarks();
+        List<GameObject> GetPrefabs();
+        void Read(IScriptCreatorContext @base);
+    }
+
+
+
     [DisallowMultipleComponent]
     [AddComponentMenu("")]
-    public class ScriptCreatorContext : MonoBehaviour
+    class ScriptCreatorContext : MonoBehaviour, IScriptCreatorContext
     {
-        [HideInInspector][SerializeField] internal List<MarkContext> marks = new List<MarkContext>();
-        [System.Serializable]
-        public class MarkContext
-        {
-            public GameObject gameObject;
-            public string fieldName;
-            public string fieldType;
-        }
         public static bool IsLegalFieldName(string src)
         {
             if (string.IsNullOrEmpty(src)) return false;
@@ -53,16 +64,18 @@ namespace IFramework.UI
 
         }
 
+        [SerializeField] private List<GameObject> Prefabs = new List<GameObject>();
 
-        public GameObject FindPrefab(string name)
+        [HideInInspector][SerializeField] private List<MarkContext> marks = new List<MarkContext>();
+        List<MarkContext> IScriptCreatorContext.GetMarks() => this.marks;
+
+        List<GameObject> IScriptCreatorContext.GetPrefabs() => Prefabs;
+
+        void IScriptCreatorContext.Read(IScriptCreatorContext @base)
         {
-            for (int i = 0; i < Prefabs.Count; i++)
-            {
-                if (Prefabs[i].name == name) return Prefabs[i];
-            }
-            return null;
+            marks = @base.GetMarks();
+            Prefabs = @base.GetPrefabs();
         }
 
-        [SerializeField] internal List<GameObject> Prefabs = new List<GameObject>();
     }
 }

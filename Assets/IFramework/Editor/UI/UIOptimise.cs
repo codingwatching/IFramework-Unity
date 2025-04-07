@@ -125,5 +125,22 @@ namespace IFramework.UI
             });
         }
 
+
+        [OnAddComponent(typeof(UIPanel))]
+        static void UIPanel(UIPanel panel)
+        {
+            RectTransform _rect = null;
+            for (int i = 0; i < panel.transform.childCount; i++)
+            {
+                _rect = panel.transform.GetChild(i).GetComponent<RectTransform>();
+                if (_rect && _rect.anchorMax == Vector2.one && _rect.anchorMin == Vector2.zero)
+                {
+                    panel.adaptRect = _rect;
+                    break;
+                }
+            }
+            if (!panel.adaptRect)
+                panel.adaptRect = panel.GetComponent<RectTransform>();
+        }
     }
 }
