@@ -82,6 +82,7 @@ namespace IFramework.UI
             public override void OnDisable()
             {
                 base.OnDisable();
+                if (pubsave == null) return;
                 EditorTools.SaveToPrefs(pubsave, name, false);
             }
 
