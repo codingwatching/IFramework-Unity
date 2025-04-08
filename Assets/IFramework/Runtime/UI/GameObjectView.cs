@@ -10,8 +10,9 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using static IFramework.Events;
 using static IFramework.UI.UnityEventHelper;
+using static System.Collections.Specialized.BitVector32;
+using static UnityEditor.ShaderData;
 
 namespace IFramework.UI
 {
@@ -127,18 +128,29 @@ namespace IFramework.UI
 
         private EventBox _eventBox;
         private UIEventBox __eventBox_ui;
-        protected EventEntity SubscribeEvent(string msg, Action<IEventArgs> action)
+        protected IEventEntity SubscribeEvent(string msg, Action<IEventArgs> action)
         {
             if (_eventBox == null)
                 _eventBox = new EventBox();
             return _eventBox.Subscribe(msg, action);
+        }
+        public IEventEntity SubscribeEvent<T>(IEventHandler<T> handler) where T : IEventArgs
+        {
+            if (_eventBox == null)
+                _eventBox = new EventBox();
+            return _eventBox.Subscribe(handler);
+        }
+        protected void UnSubscribeEvent<T>(IEventHandler<T> handler) where T : IEventArgs
+        {
+            if (_eventBox == null) return;
+            _eventBox.UnSubscribe(handler);
         }
         protected void UnSubscribeEvent(string msg, Action<IEventArgs> action)
         {
             if (_eventBox == null) return;
             _eventBox.UnSubscribe(msg, action);
         }
-        protected void UnSubscribeEvent(EventEntity entity)
+        protected void UnSubscribeEvent(IEventEntity entity)
         {
             if (_eventBox == null) return;
             _eventBox.UnSubscribe(entity);

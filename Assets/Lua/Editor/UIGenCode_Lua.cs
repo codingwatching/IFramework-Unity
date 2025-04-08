@@ -14,8 +14,6 @@ using System.Collections.Generic;
 using System.Linq;
 using IFramework.UI;
 using static IFramework.UI.UIModuleWindow;
-using static IFramework.UI.UIModuleWindow.UIGenCodeCS;
-using static IFramework.UI.UIModuleWindow.UICollectData;
 
 namespace IFramework.Lua
 {
@@ -26,7 +24,7 @@ namespace IFramework.Lua
 
         public override string name => "Lua";
         [SerializeField] private string config_path;
-        [SerializeField] private ItemType _type;
+        [SerializeField] private ViewType _type;
         protected override string GetFindPrefabCode(string source, string name, string fieldName)
         {
             return string.Empty;
@@ -78,9 +76,9 @@ namespace IFramework.Lua
             {
 
 
-                if (_type == ItemType.UI)
+                if (_type == ViewType.UI)
                     return "UIView";
-                else if (_type == ItemType.Widget)
+                else if (_type == ViewType.Widget)
                     return "GameObjectView";
 
                 return string.Empty;
@@ -88,13 +86,13 @@ namespace IFramework.Lua
             string _base = GetBase();
             string ctor()
             {
-                if (_type == ItemType.UI)
+                if (_type == ViewType.UI)
                     return $"function {ScriptName}:ctor(gameObject)\n" +
   "\tself:SetGameObject(gameObject)\n" +
  "end\n\n";
 
 
-                else if (_type == ItemType.Widget)
+                else if (_type == ViewType.Widget)
                     return $"function {ScriptName}:ctor(gameObject)\n" +
             "\tself:SetGameObject(gameObject)\n" +
            "end\n\n";
@@ -104,7 +102,7 @@ namespace IFramework.Lua
             string MoreFunction()
             {
 
-                if (_type == ItemType.UI)
+                if (_type == ViewType.UI)
                 {
                     return $"function {ScriptName}:OnShow()\n\n" +
                             "end\n\n" +
@@ -153,12 +151,12 @@ namespace IFramework.Lua
         protected override void OnFindDirSuccess()
         {
             string txt = File.ReadAllText(scriptPath);
-            var names = Enum.GetNames(typeof(UIGenCodeCS.ItemType));
+            var names = Enum.GetNames(typeof(ViewType));
             foreach (var item in names)
             {
                 if (txt.Contains($": {item}"))
                 {
-                    _type = (ItemType)Enum.Parse(typeof(ItemType), item);
+                    _type = (ViewType)Enum.Parse(typeof(ViewType), item);
                     break;
                 }
             }
@@ -168,12 +166,12 @@ namespace IFramework.Lua
             UIPanel find = panel.GetComponent<UIPanel>();
             if (find != null)
             {
-                _type = ItemType.UI;
+                _type = ViewType.UI;
             }
             else
             {
-                if (_type == ItemType.UI)
-                    _type = ItemType.Widget;
+                if (_type == ViewType.UI)
+                    _type = ViewType.Widget;
             }
         }
         protected override void LoadLastData(UIGenCode _last)
@@ -213,7 +211,7 @@ namespace IFramework.Lua
 
         protected override void Draw()
         {
-            _type = (ItemType)EditorGUILayout.EnumPopup("Type", _type);
+            _type = (ViewType)EditorGUILayout.EnumPopup("Type", _type);
             config = EditorGUILayout.ObjectField("Config", config, typeof(LuaEnvConfig), false) as LuaEnvConfig;
         }
 

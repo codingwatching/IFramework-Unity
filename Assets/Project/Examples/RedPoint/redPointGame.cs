@@ -28,7 +28,7 @@ public class redPointGame : Game
             text.text = count.ToString();
         }
     }
-    public override void Init()
+    protected override void Init()
     {
         for (int i = 0; i < keys.Count; i++)
         {
@@ -52,7 +52,7 @@ public class redPointGame : Game
 
     }
 
-    public override void Startup()
+    protected override void Startup()
     {
 
     }

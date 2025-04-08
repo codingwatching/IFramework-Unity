@@ -38,8 +38,11 @@ public class UIGame : Game, IUIDelegate
     internal void CloseView()
     {
         ui.Close(PanelNames_UIGame.PanelOne);
+
+        Events.Publish(nameof(AddArg), new AddArg() { time = Time.deltaTime });
+
     }
-    public override async void Init()
+    protected override async void Init()
     {
         ui = this.modules.CreateModule<UIModule>();
 
@@ -94,7 +97,7 @@ public class UIGame : Game, IUIDelegate
     {
         Log.L("OnVisibleChange");
     }
-    public override void Startup()
+    protected override void Startup()
     {
 
     }

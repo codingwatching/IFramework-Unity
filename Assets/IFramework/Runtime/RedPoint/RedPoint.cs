@@ -8,7 +8,7 @@ using System.Collections.Generic;
 
 namespace IFramework.RedPoint
 {
-    internal class RedPoint
+    class RedPoint
     {
         public string parent_key;
         public string key;

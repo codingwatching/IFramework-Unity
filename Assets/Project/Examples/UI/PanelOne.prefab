@@ -850,7 +850,6 @@ GameObject:
   - component: {fileID: 8286719379367330600}
   - component: {fileID: 8286719379367330606}
   - component: {fileID: 8286719379367330601}
-  - component: {fileID: 7693478361493481124}
   - component: {fileID: 782860068998906265}
   m_Layer: 5
   m_Name: PanelOne
@@ -923,22 +922,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &7693478361493481124
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8286719379367330603}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 66b9abbb23fdd2140adb592f9d23bc1f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Prefabs: []
-  marks: []
-  adaptType: 60
-  adaptRect: {fileID: 8286719379367330600}
 --- !u!114 &782860068998906265
 MonoBehaviour:
   m_ObjectHideFlags: 0

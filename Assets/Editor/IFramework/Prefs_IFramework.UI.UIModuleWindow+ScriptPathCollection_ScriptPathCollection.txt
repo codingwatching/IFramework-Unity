@@ -15,13 +15,6 @@
             ]
         },
         {
-            "prefab": "Assets/Project/Examples/UI/PanelTwo 1.prefab",
-            "ScriptPath": "Assets/Project/Examples/UI/PanelTwo_1View.cs",
-            "Paths": [
-                "Assets/Project/Examples/UI/PanelTwo_1View.cs"
-            ]
-        },
-        {
             "prefab": "Assets/Project/Examples/UI/Panel##Two 1 @.prefab",
             "ScriptPath": "Assets/Project/Examples/UI/PanelTwo_1_View.cs",
             "Paths": [

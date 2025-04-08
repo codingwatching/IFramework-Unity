@@ -19,14 +19,14 @@ namespace IFramework.Lua
         public UIModule module;
         public TextAsset txt;
         public UILayerData layer;
-        public override void Init()
+        protected override void Init()
         {
 
         }
 
- 
 
-        public override void Startup()
+
+        protected override void Startup()
         {
             module=  base.modules.CreateModule<UIModule>();
             module.SetUIDelegate(this);

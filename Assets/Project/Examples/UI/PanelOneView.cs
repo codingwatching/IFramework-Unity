@@ -10,33 +10,38 @@ using UnityEngine;
 using static IFramework.UI.UnityEventHelper;
 namespace IFramework
 {
-    public class PanelOneView : IFramework.UI.UIView
+    class AddArg : IEventArgs
+    {
+        public float time;
+    }
+    public class PanelOneView : IFramework.UI.UIView, IEventHandler<AddArg>
     {
         class View
         {
             //FieldsStart
-		public UnityEngine.UI.Button Close;
-		public UnityEngine.UI.Button add;
-		public UnityEngine.UI.Button remove;
-		public UnityEngine.Transform items;
-		public UnityEngine.UI.Button OpenOne;
-		public UnityEngine.GameObject Prefab_PanelOneItem;
+            public UnityEngine.UI.Button Close;
+            public UnityEngine.UI.Button add;
+            public UnityEngine.UI.Button remove;
+            public UnityEngine.Transform items;
+            public UnityEngine.UI.Button OpenOne;
+            public UnityEngine.GameObject Prefab_PanelOneItem;
 
             //FieldsEnd
             public View(IFramework.UI.GameObjectView context)
             {
                 //InitComponentsStart
-			Close = context.GetComponent<UnityEngine.UI.Button>("Close@sm");
-			add = context.GetComponent<UnityEngine.UI.Button>("add@sm");
-			remove = context.GetComponent<UnityEngine.UI.Button>("remove@sm");
-			items = context.GetTransform("items@sm");
-			OpenOne = context.GetComponent<UnityEngine.UI.Button>("OpenOne@sm");
-			Prefab_PanelOneItem = context.FindPrefab("PanelOneItem");
+                Close = context.GetComponent<UnityEngine.UI.Button>("Close@sm");
+                add = context.GetComponent<UnityEngine.UI.Button>("add@sm");
+                remove = context.GetComponent<UnityEngine.UI.Button>("remove@sm");
+                items = context.GetTransform("items@sm");
+                OpenOne = context.GetComponent<UnityEngine.UI.Button>("OpenOne@sm");
+                Prefab_PanelOneItem = context.FindPrefab("PanelOneItem");
 
                 //InitComponentsEnd
             }
         }
         private View view;
+
         const string eve_key_remove = "eve_key_remove";
         protected override void InitComponents()
         {
@@ -44,8 +49,6 @@ namespace IFramework
         }
         protected override void OnLoad()
         {
-            BindButton(this.view.Close, (Game.Current as UIGame).CloseView).AddTo(this);
-            BindButton(this.view.add, Add).AddTo(this);
             BindButton(this.view.remove, () =>
             {
                 Events.Publish(eve_key_remove, null);
@@ -56,9 +59,21 @@ namespace IFramework
             });
             CreateWidgetPool<PanelOneItemWidget>(view.Prefab_PanelOneItem, view.items, () => new PanelOneItemWidget());
             //collection = new UIItemViewCollection((Launcher.Instance.game as UIGame).ui);
+            BindButton(this.view.Close, (Game.Current as UIGame).CloseView).AddTo(this);
+            BindButton(this.view.add, () =>
+            {
+                //Events.Publish(new AddArg() { time = Time.deltaTime });
+                Events.Publish(nameof(AddArg), new AddArg() { time = Time.deltaTime });
+
+            }).AddTo(this);
+            SubscribeEvent<AddArg>(this);
             SubscribeEvent(eve_key_remove, (e) =>
             {
                 Remove();
+            });
+            SubscribeEvent(nameof(AddArg), (e) =>
+            {
+                Debug.Log("add");
             });
         }
         private Stack<PanelOneItemWidget> queue = new Stack<PanelOneItemWidget>();
@@ -75,6 +90,14 @@ namespace IFramework
             result.SetColor(new Color(Random.Range(0, 1f), Random.Range(0, 1f), Random.Range(0, 1f), 1));
             queue.Push(result);
         }
+        void IEventHandler<AddArg>.OnEvent(AddArg msg)
+        {
+            Add();
+        }
+
+
+
+
 
         protected override void OnShow()
         {
@@ -95,5 +118,7 @@ namespace IFramework
         protected override void OnBecameInvisible()
         {
         }
+
+
     }
 }

@@ -13,35 +13,36 @@ using UnityEditor;
 using UnityEngine;
 using System.IO;
 using System.Linq;
-using static IFramework.UI.UIModuleWindow.UICollectData;
+//using static IFramework.UI.UIModuleWindow.UICollectData;
 
 namespace IFramework.UI
 {
     public partial class UIModuleWindow
     {
-        public class UIGenCodeCS : UIGenCode
+        public enum ViewType
+        {
+            Widget,
+            UI
+        }
+        class UIGenCodeCS : UIGenCode
         {
             [System.Serializable]
-            class PubSave
+            class UIGenCodeCS_PUB
             {
                 public string NameSpace;
             }
 
 
-            private PubSave pubsave;
+            private UIGenCodeCS_PUB pubsave;
 
-            public enum ItemType
-            {
-                Widget,
-                UI
-            }
+   
             public override string name => "CS";
-            protected override string viewName => _type == ItemType.UI ? base.viewName : PanelToWidgetName(base.panelName);
+            protected override string viewName => _type == ViewType.UI ? base.viewName : PanelToWidgetName(base.panelName);
 
             protected override string GetScriptFileName(string viewName) => $"{viewName}.cs";
             private string PanelToWidgetName(string panelName) => $"{panelName}Widget";
 
-            [SerializeField] private ItemType _type;
+            [SerializeField] private ViewType _type;
             string old_version_widget_file_path;
             protected override void BeforeSetViewData()
             {
@@ -54,17 +55,17 @@ namespace IFramework.UI
                 {
                     if (panel.GetComponent<UIPanel>() != null)
                     {
-                        _type = ItemType.UI;
+                        _type = ViewType.UI;
                     }
                     else
-                        _type = ItemType.Widget;
+                        _type = ViewType.Widget;
 
                 }
             }
             protected override void OnFindDirFail()
             {
                 UIPanel find = panel.GetComponent<UIPanel>();
-                if (_type == ItemType.Widget)
+                if (_type == ViewType.Widget)
                 {
                     old_version_widget_file_path = AssetDatabase.GetAllAssetPaths().ToList().Find(x => x.EndsWith(GetScriptFileName(base.viewName)));
                 }
@@ -76,8 +77,8 @@ namespace IFramework.UI
             {
                 var last = _last as UIGenCodeCS;
                 this._type = last._type;
-                pubsave = EditorTools.GetFromPrefs(typeof(PubSave), name, false) as PubSave;
-                if (pubsave == null) pubsave = new PubSave();
+                pubsave = EditorTools.GetFromPrefs(typeof(UIGenCodeCS_PUB), name, false) as UIGenCodeCS_PUB;
+                if (pubsave == null) pubsave = new UIGenCodeCS_PUB();
             }
             public override void OnDisable()
             {
@@ -144,7 +145,7 @@ namespace IFramework.UI
                 GUILayout.EndHorizontal();
                 GUILayout.BeginHorizontal();
 
-                _type = (ItemType)EditorGUILayout.EnumPopup("Type", _type);
+                _type = (ViewType)EditorGUILayout.EnumPopup("Type", _type);
                 GUI.enabled = !string.IsNullOrEmpty(old_version_widget_file_path);
                 if (GUILayout.Button("Fix Widget", GUILayout.Width(80)))
                 {
@@ -168,10 +169,10 @@ namespace IFramework.UI
                 Type pa = null;
                 switch (_type)
                 {
-                    case ItemType.Widget:
+                    case ViewType.Widget:
                         pa = typeof(GameObjectView);
                         break;
-                    case ItemType.UI:
+                    case ViewType.UI:
                         pa = typeof(IFramework.UI.UIView);
                         break;
                     default:
@@ -264,7 +265,7 @@ namespace IFramework.UI
 
             private string ViewTxt()
             {
-                if (_type == ItemType.UI)
+                if (_type == ViewType.UI)
                     return "\t\tprotected override void OnLoad(){}\n" +
                             "\t\tprotected override void OnShow(){}\n" +
                             "\t\tprotected override void OnHide(){}\n" +
