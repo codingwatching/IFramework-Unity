@@ -33,18 +33,20 @@ namespace IFramework
             _modules = new Modules();
             transform.SetParent(Launcher.Instance.transform);
             Launcher.Instance.game = this;
+            Init();
+            Startup();
             BindUpdate(_modules.Update);
         }
         private void OnDisable()
         {
             UnBindUpdate(_modules.Update);
-            _modules.Dispose();
+            ((IDisposable)_modules).Dispose();
             values.Clear();
             _modules = null;
         }
 
-        public abstract void Init();
-        public abstract void Startup();
+        protected abstract void Init();
+        protected abstract void Startup();
 
         public void RegisterValue(Type type, object instance) => values.RegisterInstance(type, instance);
         public object GetValue(Type type) => values.Get(type);

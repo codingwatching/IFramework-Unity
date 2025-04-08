@@ -14,14 +14,14 @@ using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using static IFramework.EditorTools;
 using static IFramework.UI.PanelCollection;
-using static IFramework.UI.UIModuleWindow.UICollectData;
+//using static IFramework.UI.UIModuleWindow.UICollectData;
 
 namespace IFramework.UI
 {
     public partial class UIModuleWindow
     {
         [System.Serializable]
-        public class UILayerEdit : UIModuleWindowTab
+        class UILayerEdit : UIModuleWindowTab
         {
             private static PanelCollection collect;
             private class LayerView : TreeView
@@ -506,7 +506,7 @@ namespace IFramework.UI
             {
                 if (layerObject != null)
                 {
-                    collect = UICollectData.Collect(UICollectData.plan);
+                    collect = EditorPanelCollection.Collect(EditorPanelCollection.plan_current);
                     view = new LayerView(this);
                 }
                 else
@@ -517,26 +517,26 @@ namespace IFramework.UI
             }
             private void Tool(Rect rect)
             {
-                var index = UICollectData.planIndex;
+                var index = EditorPanelCollection.planIndex;
                 GUILayout.BeginHorizontal();
-                var plans = UICollectData.plans;
+                var plans = EditorPanelCollection.plans;
                 index = EditorGUILayout.Popup(index, plans.ConvertAll(x => x.name).ToArray(), GUILayout.Width(150));
-                if (index != UICollectData.planIndex)
+                if (index != EditorPanelCollection.planIndex)
                 {
-                    UICollectData.planIndex = index;
+                    EditorPanelCollection.planIndex = index;
                     Fresh();
                 }
-                var plan = UICollectData.plan;
+                var plan = EditorPanelCollection.plan_current;
                 var _name = GUILayout.TextField(plan.name);
-                if (GUILayout.Button(nameof(UICollectData.DeletePlan), GUILayout.Width(80)))
+                if (GUILayout.Button(nameof(EditorPanelCollection.DeletePlan), GUILayout.Width(80)))
                 {
-                    UICollectData.DeletePlan();
+                    EditorPanelCollection.DeletePlan();
                     Fresh();
                     GUIUtility.ExitGUI();
                 }
-                if (GUILayout.Button(nameof(UICollectData.NewPlan), GUILayout.Width(70)))
+                if (GUILayout.Button(nameof(EditorPanelCollection.NewPlan), GUILayout.Width(70)))
                 {
-                    UICollectData.NewPlan();
+                    EditorPanelCollection.NewPlan();
                     Fresh();
 
                     GUIUtility.ExitGUI();
@@ -548,39 +548,39 @@ namespace IFramework.UI
                 CollectF.SetPath(plan.PanelCollectPath);
                 ScriptGenF.SetPath(plan.ScriptGenPath);
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(nameof(UICollectData.Plan.ConfigGenPath), GUILayout.Width(150));
+                GUILayout.Label(nameof(EditorPanelCollectionPlan.ConfigGenPath), GUILayout.Width(150));
                 GenF.OnGUI(EditorGUILayout.GetControlRect());
                 GUILayout.EndHorizontal();
 
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(nameof(UICollectData.Plan.PanelCollectPath), GUILayout.Width(150));
+                GUILayout.Label(nameof(EditorPanelCollectionPlan.PanelCollectPath), GUILayout.Width(150));
                 CollectF.OnGUI(EditorGUILayout.GetControlRect());
                 GUILayout.EndHorizontal();
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(nameof(UICollectData.Plan.ScriptGenPath), GUILayout.Width(150));
+                GUILayout.Label(nameof(EditorPanelCollectionPlan.ScriptGenPath), GUILayout.Width(150));
                 ScriptGenF.OnGUI(EditorGUILayout.GetControlRect());
                 GUILayout.EndHorizontal();
                 GUILayout.BeginHorizontal();
 
 
                 string scriptName = EditorGUILayout.TextField(nameof(plan.ScriptName), plan.ScriptName);
-                var typeIndex = EditorGUILayout.Popup(plan.typeIndex, Plan.shortTypes, GUILayout.Width(150));
+                var typeIndex = EditorGUILayout.Popup(plan.typeIndex, EditorPanelCollectionPlan.shortTypes, GUILayout.Width(150));
                 GUILayout.EndHorizontal();
                 string configName = EditorGUILayout.TextField(nameof(plan.ConfigName), plan.ConfigName);
 
 
-                UICollectData.SavePlan(_name, GenF.path, CollectF.path, ScriptGenF.path, scriptName, configName, typeIndex);
+                EditorPanelCollection.SavePlan(_name, GenF.path, CollectF.path, ScriptGenF.path, scriptName, configName, typeIndex);
 
                 GUILayout.BeginHorizontal();
                 {
                     if (GUILayout.Button(nameof(Fresh))) Fresh();
 
-                    if (GUILayout.Button(nameof(UICollectData.GenPlan)))
-                        UICollectData.GenPlan(plan, collect);
-                    if (GUILayout.Button(nameof(UICollectData.GenPlans)))
+                    if (GUILayout.Button(nameof(EditorPanelCollection.GenPlan)))
+                        EditorPanelCollection.GenPlan(plan, collect);
+                    if (GUILayout.Button(nameof(EditorPanelCollection.GenPlans)))
                     {
-                        UICollectData.GenPlans();
+                        EditorPanelCollection.GenPlans();
                         GUIUtility.ExitGUI();
                     }
                 }

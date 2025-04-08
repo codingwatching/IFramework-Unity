@@ -18,7 +18,7 @@ using static UnityEditor.GenericMenu;
 
 namespace IFramework.UI
 {
-    public class ScriptCreatorFieldsDrawer
+    class ScriptCreatorFieldsDrawer
     {
         public enum SearchType
         {

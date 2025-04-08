@@ -96,7 +96,7 @@ namespace IFramework.UI
         }
         private void SwitchToGenCode(GameObject go, string scriptPath)
         {
-            var type = UICollectData.plan.GetSelectType();
+            var type = EditorPanelCollection.plan_current.GetSelectType();
             foreach (var item in _tabs.Values)
             {
                 if (item.GetType() == type)

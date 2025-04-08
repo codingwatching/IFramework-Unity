@@ -74,7 +74,7 @@ namespace IFramework.UI
             }
         }
 
-        public void Dispose()
+        void IDisposable.Dispose()
         {
         }
 

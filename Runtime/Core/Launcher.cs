@@ -20,12 +20,8 @@ namespace IFramework
             get { return _game; }
             set
             {
+                if (_game == value) return;
                 _game = value;
-                if (_game != null)
-                {
-                    _game.Init();
-                    _game.Startup();
-                }
             }
         }
         private static event Action onFixUpdate;
