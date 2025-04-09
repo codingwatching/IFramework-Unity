@@ -14,6 +14,9 @@ namespace IFramework.UI
         [MenuItem("CONTEXT/Text/Remove Component")]
         [MenuItem("CONTEXT/Image/Remove Component")]
         [MenuItem("CONTEXT/RawImage/Remove Component")]
+        [MenuItem("CONTEXT/Empty4Raycast/Remove Component")]
+        [MenuItem("CONTEXT/PolygonRaycastImage/Remove Component")]
+
         static void RemnoveImage(MenuCommand cmd)
         {
             var context = cmd.context;

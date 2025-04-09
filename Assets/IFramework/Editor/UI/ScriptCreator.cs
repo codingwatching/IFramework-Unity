@@ -26,7 +26,8 @@ namespace IFramework.UI
         }
         public string rootPath => gameObject.transform.GetPath();
         public GameObject gameObject { get; private set; }
-        public IScriptCreatorContext context { get; private set; }
+        private IScriptCreatorContext context { get; set; }
+        public List<GameObject> GetPrefabs() => context.GetPrefabs();
 
         private List<MarkContext> marks => context.GetMarks();
         private const string flag = "@sm";

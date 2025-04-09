@@ -12,10 +12,14 @@ using UnityEngine.UI;
 
 namespace IFramework.UI
 {
+    public interface IPolygonRaycastGraphic
+    {
+        List<Vector2> Points { get; set; }
+    }
     [DisallowMultipleComponent]
     [RequireComponent(typeof(CanvasRenderer))]
     [AddComponentMenu("IFramework/Empty4Raycast")]
-    public class Empty4Raycast : Graphic, ICanvasRaycastFilter
+    public class Empty4Raycast : Graphic, ICanvasRaycastFilter, IPolygonRaycastGraphic
     {
         [SerializeField]
         private List<Vector2> points = new List<Vector2>();
@@ -38,8 +42,7 @@ namespace IFramework.UI
 
 
 
-        // 可以将该方法移至你的工具类
-        static bool PolygonOverlap(IList<Vector2> points, float targetX, float targetY)
+        public static bool PolygonOverlap(IList<Vector2> points, float targetX, float targetY)
         {
             bool result = false;
 

@@ -5,10 +5,5 @@
     "enable_W": true,
     "enable_E": true,
     "dockWindow": true,
-    "projectPath": "Assets/Project",
-    "folders": [
-        "Scripts",
-        "Configs"
-    ],
     "NameSpace": "IFramework"
 }

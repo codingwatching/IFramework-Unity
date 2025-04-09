@@ -13,13 +13,12 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using IFramework.UI;
-using static IFramework.UI.UIModuleWindow;
 
 namespace IFramework.Lua
 {
     [Serializable]
 
-    class UIGenCode_Lua : IFramework.UI.UIModuleWindow.UIGenCode
+    class UIGenCode_Lua : UIGenCode
     {
 
         public override string name => "Lua";

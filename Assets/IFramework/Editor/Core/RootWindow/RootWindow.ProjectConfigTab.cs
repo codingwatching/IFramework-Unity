@@ -10,6 +10,7 @@ using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Remoting.Contexts;
 
 #pragma warning disable
 namespace IFramework
@@ -88,55 +89,9 @@ namespace IFramework
                 GUI.enabled = !EditorApplication.isPlaying;
                 Info.NameSpace = EditorGUILayout.TextField(Contents.Namespace, Info.NameSpace);
 
-                EditorGUI.DrawRect(EditorGUILayout.GetControlRect(GUILayout.Height(2)), new Color(0.5f, 0.5f, 0.5f));
 
-                GUILayout.BeginVertical(EditorStyles.helpBox);
-                GUILayout.BeginHorizontal();
-                Info.projectPath = EditorGUILayout.TextField(Contents.projectPath, Info.projectPath);
-
-
-                //GUILayout.FlexibleSpace();
-                if (GUILayout.Button("+", GUILayout.Width(20)))
-                {
-                    Info.folders.Add("FolderName");
-                }
-                if (GUILayout.Button("Build", GUILayout.Width(50)))
-                {
-                    var list = new List<string>() { Info.projectPath }
-                        .Concat(Info.folders.Select(x => Info.projectPath.CombinePath(x)));
-                    EditorTools.CreateDirectories(list.ToList());
-                }
-                GUILayout.EndHorizontal();
-                int cloumn_count = 4;
-                for (int i = 0; i < Info.folders.Count; i++)
-                {
-                    if (i % cloumn_count == 0)
-                        GUILayout.BeginHorizontal();
-                    var src = Info.folders[i];
-                    GUILayout.Space(10);
-                    Info.folders[i] = EditorGUILayout.TextField(src, GUILayout.MaxWidth(100));
-                    if (GUILayout.Button("-", GUILayout.Width(20)))
-                    {
-                        Info.folders.Remove(src);
-                        EditorTools.ProjectConfig.Save();
-                        GUIUtility.ExitGUI();
-                    }
-                    if (i % cloumn_count == cloumn_count - 1)
-                        GUILayout.EndHorizontal();
-                }
-                if (Info.folders.Count % cloumn_count != 0)
-                    GUILayout.EndHorizontal();
-
-
-
-
-
-                GUILayout.EndVertical();
-
-
-                GUILayout.Space(10);
                 Info.dockWindow = EditorGUILayout.Toggle(Contents.dockWindow, Info.dockWindow);
-              
+
                 EditorGUI.DrawRect(EditorGUILayout.GetControlRect(GUILayout.Height(2)), new Color(0.5f, 0.5f, 0.5f));
                 GUILayout.Label(Contents.logset, EditorStyles.largeLabel);
                 Info.enable_F = EditorGUILayout.Toggle(Contents.framelogenable, Info.enable_F);
@@ -154,10 +109,89 @@ namespace IFramework
                     EditorTools.SetLogStatus();
                 }
                 //Sys();
-
+                BuildFolders();
 
             }
+            [System.Serializable]
+            class FolderBuilder
+            {
+                public string projectPath = "Assets/Project";
+                public List<string> folders = new List<string>() {
+                "Scripts","Configs","Images","Fonts","Textures","Shaders","Materials"
+            };
+                public static FolderBuilder _context;
+                public static FolderBuilder context
+                {
 
+                    get
+                    {
+                        if (_context == null)
+                            _context = EditorTools.GetFromPrefs<FolderBuilder>(nameof(FolderBuilder));
+
+                        if (_context == null)
+                            _context = new FolderBuilder();
+
+                        return _context;
+                    }
+                }
+                public static void Save() => EditorTools.SaveToPrefs<FolderBuilder>(context, nameof(FolderBuilder));
+            }
+
+            private void BuildFolders()
+            {
+                EditorGUI.DrawRect(EditorGUILayout.GetControlRect(GUILayout.Height(2)), new Color(0.5f, 0.5f, 0.5f));
+
+                GUILayout.BeginVertical(EditorStyles.helpBox);
+                GUILayout.Label("Build Folder", EditorStyles.largeLabel);
+
+                GUILayout.BeginHorizontal();
+                EditorGUI.BeginChangeCheck();
+                FolderBuilder.context.projectPath = EditorGUILayout.TextField(Contents.projectPath, FolderBuilder.context.projectPath);
+                var folders = FolderBuilder.context.folders;
+                var projectPath = FolderBuilder.context.projectPath;
+
+                //GUILayout.FlexibleSpace();
+                if (GUILayout.Button("+", GUILayout.Width(20)))
+                {
+                    folders.Add("FolderName");
+                }
+                if (GUILayout.Button("Build", GUILayout.Width(50)))
+                {
+                    var list = new List<string>() { projectPath }
+                        .Concat(folders.Select(x => projectPath.CombinePath(x)));
+                    EditorTools.CreateDirectories(list.ToList());
+                }
+                GUILayout.EndHorizontal();
+                int cloumn_count = 4;
+                for (int i = 0; i < folders.Count; i++)
+                {
+                    if (i % cloumn_count == 0)
+                        GUILayout.BeginHorizontal();
+                    var src = folders[i];
+                    GUILayout.Space(10);
+                    folders[i] = EditorGUILayout.TextField(src, GUILayout.MaxWidth(100));
+                    if (GUILayout.Button("-", GUILayout.Width(20)))
+                    {
+                        folders.Remove(src);
+                        EditorTools.ProjectConfig.Save();
+                        GUIUtility.ExitGUI();
+                    }
+                    if (i % cloumn_count == cloumn_count - 1)
+                        GUILayout.EndHorizontal();
+                }
+                if (folders.Count % cloumn_count != 0)
+                    GUILayout.EndHorizontal();
+                GUILayout.EndVertical();
+
+
+
+                if (EditorGUI.EndChangeCheck())
+                {
+                    FolderBuilder.Save();
+                }
+
+                GUILayout.Space(10);
+            }
         }
 
     }
