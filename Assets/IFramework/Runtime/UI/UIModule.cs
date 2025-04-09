@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.UI;
 using static IFramework.UI.UIPanel;
 
 namespace IFramework.UI
@@ -252,7 +253,18 @@ namespace IFramework.UI
 
     partial class UIModule
     {
-
+        //min 1125*2346
+        //max 768*1024
+        public void AdaptScreenByCanvasScaler(float min = 0.48f, float max = 0.75f)
+        {
+            CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
+            var width = (float)Screen.width;
+            var height = (float)Screen.height;
+            var percent = width / height;
+            var length = max - min;
+            percent = (percent - min) / length;
+            scaler.matchWidthOrHeight = percent;
+        }
         public void SetAsset(UIAsset asset) => assetPart = asset;
 
         public void SetBridge(IViewBridge bridge) => this.bridgePart = bridge;
