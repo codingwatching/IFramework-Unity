@@ -53,23 +53,9 @@ public class UIGame : Game, IUIDelegate
         Log.L("BeginShow");
         await ui.Show(PanelNames_UIGame.PanelOne);
         Log.L("EndShow");
-        Test();
+        //Test();
     }
-    private async void Test()
-    {
-        Debug.LogError("HH0");
-        Debug.LogError(Time.time);
 
-        await While(() => Time.time <= 3f);
-        Debug.LogError(Time.time);
-
-        await Delay(1f);
-        await Delay(1f, () =>
-        {
-            Debug.LogError("HH1");
-        });
-        Debug.LogError("HH4");
-    }
 
     void IUIDelegate.OnFullScreenCount(bool hide, int count)
     {

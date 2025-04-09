@@ -75,6 +75,23 @@ namespace IFramework
             {
                 Debug.Log("add");
             });
+            Test();
+        }
+        private async void Test()
+        {
+            Debug.LogError("HH0");
+            Debug.LogError(Time.time);
+
+            await Game.Current.While(() => Time.time <= 10f).AddTo(this);
+            Debug.LogError(Time.time);
+
+            await Game.Current.Delay(1f).AddTo(this);
+            await Game.Current.Delay(1f, () =>
+            {
+                Debug.LogError("HH1");
+            }).AddTo(this);
+            if (this.gameObject)
+                Debug.LogError("HH4");
         }
         private Stack<PanelOneItemWidget> queue = new Stack<PanelOneItemWidget>();
         private void Remove()
