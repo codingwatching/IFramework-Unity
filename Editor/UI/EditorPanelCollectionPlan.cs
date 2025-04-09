@@ -10,84 +10,73 @@ using UnityEditor;
 using UnityEngine;
 using System.Linq;
 using System;
-using System.Collections.Generic;
+using static IFramework.UI.UIModuleWindow;
 
 namespace IFramework.UI
 {
-    public partial class UIModuleWindow
+    [System.Serializable]
+    class EditorPanelCollectionPlan
     {
-        [System.Serializable]
-        class EditorPanelCollectionPlans
+        public string ConfigGenPath;
+        public string PanelCollectPath;
+        public string ScriptGenPath;
+        public string ScriptName;
+        public string name;
+        public string collectionJsonPath => ConfigGenPath.CombinePath($"{ConfigName}.json");
+
+
+        private static string[] _typeNames, _shortTypes;
+        public static string[] typeNames
         {
-            public int index = 0;
-
-            public List<EditorPanelCollectionPlan> plans = new List<EditorPanelCollectionPlan>();
+            get
+            {
+                if (_typeNames == null)
+                    Enable();
+                return _typeNames;
+            }
         }
-        [System.Serializable]
-        class EditorPanelCollectionPlan
+        public static string[] shortTypes
         {
-            public string ConfigGenPath;
-            public string PanelCollectPath;
-            public string ScriptGenPath;
-            public string ScriptName;
-            public string name;
-            public string collectionJsonPath => ConfigGenPath.CombinePath($"{ConfigName}.json");
-
-
-            private static string[] _typeNames, _shortTypes;
-            public static string[] typeNames
+            get
             {
-                get
-                {
-                    if (_typeNames == null)
-                        Enable();
-                    return _typeNames;
-                }
+                if (_shortTypes == null)
+                    Enable();
+                return _shortTypes;
             }
-            public static string[] shortTypes
-            {
-                get
-                {
-                    if (_shortTypes == null)
-                        Enable();
-                    return _shortTypes;
-                }
-            }
-            public static Type[] __types;
-            public static Type[] types
-            {
-                get
-                {
-                    if (__types == null)
-                    {
-                        Enable();
-                    }
-                    return __types;
-                }
-            }
-            public int typeIndex;
-            public static Type baseType = typeof(UIGenCode);
-            public string ConfigName;
-
-            private static void Enable()
-            {
-                var list = EditorTools.GetSubTypesInAssemblies(baseType)
-               .Where(type => !type.IsAbstract);
-                __types = list.ToArray();
-                _typeNames = list.Select(type => type.FullName).ToArray();
-                _shortTypes = list.Select(type => type.Name).ToArray();
-            }
-            public Type GetSelectType()
-            {
-                typeIndex = Mathf.Clamp(typeIndex, 0, typeNames.Length);
-                var type_str = typeNames[typeIndex];
-                Type type = types.FirstOrDefault(x => x.FullName == type_str);
-
-                return type;
-            }
-
-
         }
+        public static Type[] __types;
+        public static Type[] types
+        {
+            get
+            {
+                if (__types == null)
+                {
+                    Enable();
+                }
+                return __types;
+            }
+        }
+        public int typeIndex;
+        public static Type baseType = typeof(UIGenCode);
+        public string ConfigName;
+
+        private static void Enable()
+        {
+            var list = EditorTools.GetSubTypesInAssemblies(baseType)
+           .Where(type => !type.IsAbstract);
+            __types = list.ToArray();
+            _typeNames = list.Select(type => type.FullName).ToArray();
+            _shortTypes = list.Select(type => type.Name).ToArray();
+        }
+        public Type GetSelectType()
+        {
+            typeIndex = Mathf.Clamp(typeIndex, 0, typeNames.Length);
+            var type_str = typeNames[typeIndex];
+            Type type = types.FirstOrDefault(x => x.FullName == type_str);
+
+            return type;
+        }
+
 
     }
 }

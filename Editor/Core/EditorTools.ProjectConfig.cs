@@ -59,7 +59,7 @@ namespace IFramework
             public static bool enable_E { get { return Info.enable_E; } }
 
             public static bool dockWindow { get { return Info.dockWindow; } }
-            public static string projectPath { get { return Info.projectPath; } }
+            //public static string projectPath { get { return Info.projectPath; } }
 
             private const string configName = "ProjectConfig";
             [Serializable]
@@ -73,10 +73,10 @@ namespace IFramework
                 public bool enable_E = true;
 
                 public bool dockWindow = true;
-                public string projectPath = "Assets/Project";
-                public List<string> folders = new List<string>() {
-                    "Scripts","Configs"
-                };
+                //public string projectPath = "Assets/Project";
+                //public List<string> folders = new List<string>() {
+                //    "Scripts","Configs"
+                //};
                 //public string Version { get { return PlayerSettings.bundleVersion; } set { PlayerSettings.bundleVersion = value; } }
                 public string NameSpace;
 

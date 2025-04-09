@@ -7,19 +7,14 @@
  *History:        2018.11--
 *********************************************************************************/
 
-using System;
+//using static IFramework.UI.UIModuleWindow.UICollectData;
 
 namespace IFramework.UI
 {
-    public partial class UIModuleWindow
+    public enum ViewType
     {
-        public abstract class UIModuleWindowTab
-        {
-            public abstract string name { get; }
-            public abstract void OnGUI();
-            public virtual void OnEnable() { }
-            public virtual void OnDisable() { }
-            public virtual void OnHierarchyChanged() { }
-        }
+        Widget,
+        UI
     }
+
 }

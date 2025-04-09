@@ -17,7 +17,7 @@ namespace IFramework.UI
 {
 
     [EditorWindowCache("UIModule")]
-    public partial class UIModuleWindow : EditorWindow
+    partial class UIModuleWindow : EditorWindow
     {
 
         private Dictionary<string, UIModuleWindowTab> _tabs;
@@ -96,7 +96,7 @@ namespace IFramework.UI
         }
         private void SwitchToGenCode(GameObject go, string scriptPath)
         {
-            var type = EditorPanelCollection.plan_current.GetSelectType();
+            var type = EditorPanelCollectionPlans.plan_current.GetSelectType();
             foreach (var item in _tabs.Values)
             {
                 if (item.GetType() == type)

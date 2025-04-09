@@ -14,11 +14,10 @@ using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using static IFramework.EditorTools;
 using static IFramework.UI.PanelCollection;
-//using static IFramework.UI.UIModuleWindow.UICollectData;
 
 namespace IFramework.UI
 {
-    public partial class UIModuleWindow
+    partial class UIModuleWindow
     {
         [System.Serializable]
         class UILayerEdit : UIModuleWindowTab
@@ -506,7 +505,7 @@ namespace IFramework.UI
             {
                 if (layerObject != null)
                 {
-                    collect = EditorPanelCollection.Collect(EditorPanelCollection.plan_current);
+                    collect = EditorPanelCollectionPlans.Collect(EditorPanelCollectionPlans.plan_current);
                     view = new LayerView(this);
                 }
                 else
@@ -517,26 +516,26 @@ namespace IFramework.UI
             }
             private void Tool(Rect rect)
             {
-                var index = EditorPanelCollection.planIndex;
+                var index = EditorPanelCollectionPlans.planIndex;
                 GUILayout.BeginHorizontal();
-                var plans = EditorPanelCollection.plans;
+                var plans = EditorPanelCollectionPlans.plans;
                 index = EditorGUILayout.Popup(index, plans.ConvertAll(x => x.name).ToArray(), GUILayout.Width(150));
-                if (index != EditorPanelCollection.planIndex)
+                if (index != EditorPanelCollectionPlans.planIndex)
                 {
-                    EditorPanelCollection.planIndex = index;
+                    EditorPanelCollectionPlans.planIndex = index;
                     Fresh();
                 }
-                var plan = EditorPanelCollection.plan_current;
+                var plan = EditorPanelCollectionPlans.plan_current;
                 var _name = GUILayout.TextField(plan.name);
-                if (GUILayout.Button(nameof(EditorPanelCollection.DeletePlan), GUILayout.Width(80)))
+                if (GUILayout.Button(nameof(EditorPanelCollectionPlans.DeletePlan), GUILayout.Width(80)))
                 {
-                    EditorPanelCollection.DeletePlan();
+                    EditorPanelCollectionPlans.DeletePlan();
                     Fresh();
                     GUIUtility.ExitGUI();
                 }
-                if (GUILayout.Button(nameof(EditorPanelCollection.NewPlan), GUILayout.Width(70)))
+                if (GUILayout.Button(nameof(EditorPanelCollectionPlans.NewPlan), GUILayout.Width(70)))
                 {
-                    EditorPanelCollection.NewPlan();
+                    EditorPanelCollectionPlans.NewPlan();
                     Fresh();
 
                     GUIUtility.ExitGUI();
@@ -570,17 +569,17 @@ namespace IFramework.UI
                 string configName = EditorGUILayout.TextField(nameof(plan.ConfigName), plan.ConfigName);
 
 
-                EditorPanelCollection.SavePlan(_name, GenF.path, CollectF.path, ScriptGenF.path, scriptName, configName, typeIndex);
+                EditorPanelCollectionPlans.SaveCurrentPlan(_name, GenF.path, CollectF.path, ScriptGenF.path, scriptName, configName, typeIndex);
 
                 GUILayout.BeginHorizontal();
                 {
                     if (GUILayout.Button(nameof(Fresh))) Fresh();
 
-                    if (GUILayout.Button(nameof(EditorPanelCollection.GenPlan)))
-                        EditorPanelCollection.GenPlan(plan, collect);
-                    if (GUILayout.Button(nameof(EditorPanelCollection.GenPlans)))
+                    if (GUILayout.Button(nameof(EditorPanelCollectionPlans.GenPlan)))
+                        EditorPanelCollectionPlans.GenPlan(plan, collect);
+                    if (GUILayout.Button(nameof(EditorPanelCollectionPlans.GenPlans)))
                     {
-                        EditorPanelCollection.GenPlans();
+                        EditorPanelCollectionPlans.GenPlans();
                         GUIUtility.ExitGUI();
                     }
                 }
