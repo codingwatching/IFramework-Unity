@@ -15,6 +15,9 @@ using UnityEngine;
 namespace IFramework
 {
 
+
+
+
     public interface IInjectAble { }
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
     public class InjectAttribute : System.Attribute { }
@@ -27,10 +30,22 @@ namespace IFramework
         public static Game Current { get { return Launcher.Instance.game; } }
         private ValueContainer values;
         Modules _modules;
+        private TimerModule timer;
+
+        public ITimerContext Until(Func<bool> condition, float interval = 0.01f) => timer.Until(condition, interval);
+        public ITimerContext While(Func<bool> condition, float interval = 0.01f) => timer.While(condition, interval);
+
+        public ITimerContext CustomTimer(TimerContext context) => timer.Custom(context);
+        public ITimerContext Delay(float delay, Action action = null) => timer.Delay(delay, action);
+        public ITimerContext Trick(float interval, int times, Action action) => timer.Trick(interval, times, action);
+        public ITimerContext DelayAndTrick(float delay, Action delayCall, float interval, int times, Action action)
+            => timer.DelayAndTrick(delay, delayCall, interval, times, action);
+
         private void Awake()
         {
             values = new ValueContainer();
             _modules = new Modules();
+            timer = _modules.CreateModule<TimerModule>();
             transform.SetParent(Launcher.Instance.transform);
             Launcher.Instance.game = this;
             Init();
