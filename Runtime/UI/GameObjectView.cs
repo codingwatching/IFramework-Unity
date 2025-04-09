@@ -11,12 +11,10 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using static IFramework.UI.UnityEventHelper;
-using static System.Collections.Specialized.BitVector32;
-using static UnityEditor.ShaderData;
 
 namespace IFramework.UI
 {
-    public abstract class GameObjectView
+    public abstract class GameObjectView : ITimerContextBox, IUIEventBox
     {
         public GameObject gameObject { get; private set; }
         public Transform transform { get; private set; }
@@ -40,7 +38,7 @@ namespace IFramework.UI
             {
                 return prefab;
             }
-            prefab = _FindPrefab(context.GetPrefabs(),name);
+            prefab = _FindPrefab(context.GetPrefabs(), name);
             if (prefab != null)
             {
                 _prefabsName[name] = prefab;
@@ -53,12 +51,12 @@ namespace IFramework.UI
             return prefab;
         }
         public virtual void SetActive(bool active) => gameObject.SetActive(active);
-        public void SetGameObject(GameObject gameObject)
+        public bool SetGameObject(GameObject gameObject)
         {
             if (gameObject == null)
             {
                 Log.FE($"{GetType()}-->  Can not SetGameObject With Null GameObject");
-                return;
+                return false;
             }
             if (this.gameObject != gameObject)
             {
@@ -67,7 +65,9 @@ namespace IFramework.UI
                 transform = gameObject.transform;
                 context = GetComponent<IScriptCreatorContext>(string.Empty);
                 InitComponents();
+                return true;
             }
+            return false;
         }
 
         public Transform GetTransform(string path)
@@ -121,11 +121,38 @@ namespace IFramework.UI
 
         public void SetAsChild(GameObjectView view) => view.SetParent(this);
 
+        void ITimerContextBox.AddTimer(ITimerContext context)
+        {
+            if (_timerbox == null) _timerbox = new TimerContextBox();
+            _timerbox.AddTimer(context);
+        }
+
+        public void CompleteTimer(ITimerContext context)
+        {
+            if (_timerbox == null) return;
+            _timerbox.CompleteTimer(context);
+        }
+
+        public void CompleteTimers()
+        {
+            if (_timerbox == null) return;
+            _timerbox.CompleteTimers();
+        }
+
+        public void CancelTimers()
+        {
+            if (_timerbox == null) return;
+            _timerbox.CancelTimers();
+        }
+
+        public void CancelTimer(ITimerContext context)
+        {
+            if (_timerbox == null) return;
+            _timerbox.CancelTimer(context);
+        }
 
 
-
-
-
+        private TimerContextBox _timerbox;
         private EventBox _eventBox;
         private UIEventBox __eventBox_ui;
         protected IEventEntity SubscribeEvent(string msg, Action<IEventArgs> action)
@@ -155,18 +182,29 @@ namespace IFramework.UI
             if (_eventBox == null) return;
             _eventBox.UnSubscribe(entity);
         }
-        internal void AddUIEvent(UIEventEntity uiEvent)
+
+
+        void IUIEventBox.AddUIEvent(UIEventEntity entity)
         {
             if (__eventBox_ui == null)
                 __eventBox_ui = new UIEventBox();
-            uiEvent.AddTo(__eventBox_ui);
-        }
-        protected void DisposeUIEvent(UIEventEntity uiEvent)
-        {
-            if (__eventBox_ui == null) return;
-            __eventBox_ui.Dispose(uiEvent);
+            entity.AddTo(__eventBox_ui);
         }
 
+        public void DisposeUIEvent(UIEventEntity entity)
+        {
+            if (__eventBox_ui == null) return;
+            __eventBox_ui.DisposeUIEvent(entity);
+        }
+
+        public void DisposeUIEvents()
+        {
+            if (__eventBox_ui != null)
+            {
+                __eventBox_ui.DisposeUIEvents();
+                __eventBox_ui = null;
+            }
+        }
 
 
         public void DisposeEvents()
@@ -177,14 +215,7 @@ namespace IFramework.UI
                 _eventBox = null;
             }
         }
-        public void DisposeUIEvents()
-        {
-            if (__eventBox_ui != null)
-            {
-                __eventBox_ui.Dispose();
-                __eventBox_ui = null;
-            }
-        }
+
         public void ClearWidgetPools()
         {
             if (widgetPools != null)
@@ -203,6 +234,7 @@ namespace IFramework.UI
         protected virtual void OnClearFields() { }
         public void ClearFields()
         {
+            CancelTimers();
             DisposeChildren();
             OnClearFields();
             DisposeEvents();
@@ -280,5 +312,6 @@ namespace IFramework.UI
             pool.Set(ins);
         }
 
+   
     }
 }

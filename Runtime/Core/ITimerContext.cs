@@ -43,20 +43,21 @@ namespace IFramework
         {
             OnCompleted(continuation);
         }
-
-
     }
 
     public interface ITimerContext
     {
         bool isDone { get; }
+        bool canceled { get; }
         void Pause();
         void UnPause();
         void Complete();
+        void Cancel();
     }
     class Timer
     {
         public bool isDone { get; private set; }
+        public bool canceled { get; private set; }
         private float time;
         public TimerContext context { get; private set; }
         private bool pause;
@@ -67,6 +68,7 @@ namespace IFramework
             this.context = context;
             context.Config(this);
             isDone = false;
+            canceled = false;
         }
         public void Pause()
         {
@@ -78,7 +80,7 @@ namespace IFramework
         }
         public void Update(float deltaTime)
         {
-            if (pause || isDone) return;
+            if (canceled || pause || isDone) return;
             time += deltaTime;
             context.Update(time);
         }
@@ -87,6 +89,12 @@ namespace IFramework
             if (isDone) return;
             isDone = true;
         }
+
+        internal void Cancel()
+        {
+            canceled = true;
+            Pause();
+        }
     }
     public abstract class TimerContext : ITimerContext
     {
@@ -94,6 +102,7 @@ namespace IFramework
         internal Action completed;
 
         public bool isDone => timer.isDone;
+        public bool canceled => timer.canceled;
 
         internal void Update(float time) => OnUpdate(time);
         protected abstract void OnUpdate(float time);
@@ -111,9 +120,15 @@ namespace IFramework
             completed?.Invoke();
             completed = null;
         }
+
+        public void Cancel() {
+            this.timer.Cancel();
+            completed = null;
+
+        }
     }
 
-    class ConditionContext : TimerContext
+    class ConditionTimerContext : TimerContext
     {
         private void CalcNextTime(float time) => nextIntervalTime = interval + time;
         private float interval;
@@ -158,7 +173,7 @@ namespace IFramework
 
         }
     }
-    class NormalContext : TimerContext
+    class NormalTimerContext : TimerContext
     {
         private enum Mode
         {
@@ -276,20 +291,17 @@ namespace IFramework
     }
     class TimerModule : UpdateModule
     {
-        private class ConditionPool : ObjectPool<ConditionContext>
+        private class ConditionPool : ObjectPool<ConditionTimerContext>
         {
-            protected override ConditionContext CreateNew() => new ConditionContext();
+            protected override ConditionTimerContext CreateNew() => new ConditionTimerContext();
         }
-        private class ContextPool : ObjectPool<NormalContext>
+        private class ContextPool : ObjectPool<NormalTimerContext>
         {
-            protected override NormalContext CreateNew() => new NormalContext();
+            protected override NormalTimerContext CreateNew() => new NormalTimerContext();
         }
         private class Pool : ObjectPool<Timer>
         {
-            protected override Timer CreateNew()
-            {
-                return new Timer();
-            }
+            protected override Timer CreateNew() => new Timer();
         }
         private Pool pool;
         private ContextPool contextPool;
@@ -371,31 +383,97 @@ namespace IFramework
         {
             timers.Clear();
         }
+        private void Cycle(Timer timer)
+        {
+            pool.Set(timer);
+            if (timer.context is NormalTimerContext)
+                contextPool.Set(timer.context as NormalTimerContext);
+            if (timer.context is ConditionTimerContext)
+                conditionPool.Set(timer.context as ConditionTimerContext);
+        }
         protected override void OnUpdate()
         {
             for (int i = timers.Count - 1; i >= 0; i--)
             {
 
+
                 var timer = timers[i];
+                if (timer.canceled)
+                {
+                    timers.RemoveAt(i);
+                    Cycle(timer);
+                    continue;
+                }
+
                 timer.Update(Time.deltaTime);
                 if (timer.isDone)
                 {
                     timers.RemoveAt(i);
-                    pool.Set(timer);
-                    if (timer.context is NormalContext)
-                        contextPool.Set(timer.context as NormalContext);
-                    if (timer.context is ConditionContext)
-                        conditionPool.Set(timer.context as ConditionContext);
+                    Cycle(timer);
                 }
             }
         }
     }
+    public interface ITimerContextBox
+    {
+        void AddTimer(ITimerContext context);
+        void CompleteTimer(ITimerContext context);
+        void CompleteTimers();
+        void CancelTimers();
+        void CancelTimer(ITimerContext context);
+    }
+    public class TimerContextBox : ITimerContextBox
+    {
+        private List<ITimerContext> contexts = new List<ITimerContext>();
+        public void AddTimer(ITimerContext context)
+        {
+            contexts.Add(context);
+        }
 
+        public void CancelTimer(ITimerContext context)
+        {
+            if (!contexts.Contains(context)) return;
+            context.Cancel();
+            contexts.Remove(context);
+        }
+
+        public void CancelTimers()
+        {
+            for (int i = 0; i < contexts.Count; i++)
+            {
+                var context = contexts[i];
+                context.Cancel();
+            }
+            contexts.Clear();
+        }
+
+        public void CompleteTimer(ITimerContext context)
+        {
+            if (!contexts.Contains(context)) return;
+            context.Complete();
+            contexts.Remove(context);
+        }
+        public void CompleteTimers()
+        {
+            for (int i = 0; i < contexts.Count; i++)
+            {
+                var context = contexts[i];
+                context.Complete();
+            }
+            contexts.Clear();
+        }
+    }
     public static class TimeEx
     {
         public static IAwaiter<ITimerContext> GetAwaiter(this ITimerContext context)
         {
             return new ITimerContextAwaitor(context);
         }
+        public static ITimerContext AddTo(this ITimerContext context, ITimerContextBox box)
+        {
+            box.AddTimer(context);
+            return context;
+        }
+
     }
 }
