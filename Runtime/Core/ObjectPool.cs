@@ -4,12 +4,12 @@ using System.Collections.Generic;
 namespace IFramework
 {
 
-    public abstract class ObjectPool<T> 
+    public abstract class ObjectPool<T>
     {
 
         protected Queue<T> pool { get { return _lazy.Value; } }
         private Lazy<Queue<T>> _lazy = new Lazy<Queue<T>>(() => { return new Queue<T>(); }, true);
- 
+
         public virtual Type type { get { return typeof(T); } }
 
 
@@ -76,5 +76,26 @@ namespace IFramework
         protected virtual void OnGet(T t) { }
 
         protected virtual void OnCreate(T t) { }
+    }
+    public interface ISimpleObjectPool
+    {
+        void SetObject(object context);
+    }
+    public sealed class SimpleObjectPool<T> : ObjectPool<T>, ISimpleObjectPool where T : class, new()
+    {
+        public void SetObject(object context)
+        {
+            if (!(context is T))
+            {
+                Log.FE($"{nameof(context)} is not {typeof(T)}");
+                return;
+            }
+            base.Set(context as T);
+        }
+
+        protected override T CreateNew()
+        {
+            return new T();
+        }
     }
 }
