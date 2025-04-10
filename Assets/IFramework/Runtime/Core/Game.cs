@@ -24,28 +24,55 @@ namespace IFramework
 
 
 
-    public abstract class Game : MonoBehaviour, IInjectAble
+    public abstract class Game : MonoBehaviour, IInjectAble, ITimerScheduler, ITimerContextBox
     {
         public Modules modules => _modules;
         public static Game Current { get { return Launcher.Instance.game; } }
         private ValueContainer values;
         Modules _modules;
-        private TimerModule timer;
+        private TimerScheduler _timerScheduler;
+        public T AllocateTimerContext<T>() where T : TimerContext, new() => _timerScheduler.AllocateTimerContext<T>();
+        public ITimerContext RunTimerContext(TimerContext context) => _timerScheduler.RunTimerContext(context);
 
-        public ITimerContext Until(Func<bool> condition, float interval = 0.01f) => timer.Until(condition, interval);
-        public ITimerContext While(Func<bool> condition, float interval = 0.01f) => timer.While(condition, interval);
 
-        public ITimerContext CustomTimer(TimerContext context) => timer.Custom(context);
-        public ITimerContext Delay(float delay, Action action = null) => timer.Delay(delay, action);
-        public ITimerContext Trick(float interval, int times, Action action) => timer.Trick(interval, times, action);
-        public ITimerContext DelayAndTrick(float delay, Action delayCall, float interval, int times, Action action)
-            => timer.DelayAndTrick(delay, delayCall, interval, times, action);
+
+
+        private TimerContextBox _timerbox;
+        void ITimerContextBox.AddTimer(ITimerContext context)
+        {
+            if (_timerbox == null) _timerbox = new TimerContextBox();
+            _timerbox.AddTimer(context);
+        }
+        public void CompleteTimer(ITimerContext context)
+        {
+            if (_timerbox == null) return;
+            _timerbox.CompleteTimer(context);
+        }
+        public void CompleteTimers()
+        {
+            if (_timerbox == null) return;
+            _timerbox.CompleteTimers();
+        }
+        public void CancelTimers()
+        {
+            if (_timerbox == null) return;
+            _timerbox.CancelTimers();
+        }
+        public void CancelTimer(ITimerContext context)
+        {
+            if (_timerbox == null) return;
+            _timerbox.CancelTimer(context);
+        }
+
+
+
+
 
         private void Awake()
         {
             values = new ValueContainer();
             _modules = new Modules();
-            timer = _modules.CreateModule<TimerModule>();
+            _timerScheduler = _modules.CreateModule<TimerScheduler>();
             transform.SetParent(Launcher.Instance.transform);
             Launcher.Instance.game = this;
             Init();
@@ -54,6 +81,7 @@ namespace IFramework
         }
         private void OnDisable()
         {
+            CancelTimers();
             UnBindUpdate(_modules.Update);
             ((IDisposable)_modules).Dispose();
             values.Clear();
@@ -149,5 +177,7 @@ namespace IFramework
         public static void UnBindOnApplicationPause(Action<bool> action) => Launcher.UnBindOnApplicationPause(action);
         public static void BindDisable(Action action) => Launcher.BindDisable(action);
         public static void UnBindDisable(Action action) => Launcher.UnBindDisable(action);
+
+
     }
 }
