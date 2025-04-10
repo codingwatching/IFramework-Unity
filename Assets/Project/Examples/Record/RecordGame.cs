@@ -1,6 +1,5 @@
-using IFramework.Record;
 using UnityEngine;
-
+using IFramework;
 public class RecordGame : MonoBehaviour
 {
     public UnityEngine.UI.Button left, right, add5, muti2;
