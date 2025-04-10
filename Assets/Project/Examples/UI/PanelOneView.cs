@@ -82,11 +82,11 @@ namespace IFramework
             Debug.LogError("HH0");
             Debug.LogError(Time.time);
 
-            await Game.Current.While(() => Time.time <= 5f).AddTo(this);
+            await Game.Current.While((time) => Time.time <= 5f).AddTo(this);
             Debug.LogError(Time.time);
 
             await Game.Current.Delay(1f).AddTo(this);
-            await Game.Current.Delay(1f, () =>
+            await Game.Current.Delay(1f, (time) =>
             {
                 Debug.LogError("HH1");
             }).AddTo(this);

@@ -4,6 +4,11 @@ using System.Collections.Generic;
 namespace IFramework
 {
 
+    public interface IPoolObject
+    {
+        void OnGet();
+        void OnSet();
+    }
     public abstract class ObjectPool<T>
     {
 
@@ -30,7 +35,12 @@ namespace IFramework
                 t = CreateNew();
                 OnCreate(t);
             }
+            if (t is IPoolObject)
+            {
+                (t as IPoolObject).OnGet();
+            }
             OnGet(t);
+
             return t;
         }
 
@@ -40,6 +50,10 @@ namespace IFramework
             {
                 if (OnSet(t))
                 {
+                    if (t is IPoolObject)
+                    {
+                        (t as IPoolObject).OnSet();
+                    }
                     pool.Enqueue(t);
                 }
                 return true;
@@ -87,7 +101,7 @@ namespace IFramework
         {
             if (!(context is T))
             {
-                Log.FE($"{nameof(context)} is not {typeof(T)}");
+                Log.FE($"{nameof(context)} is not {typeof(T)} is {context.GetType()}");
                 return;
             }
             base.Set(context as T);
