@@ -223,7 +223,6 @@ namespace IFramework
         protected abstract void OnLoopEnd();
         private bool WhileCheck(float time, float delta)
         {
-            bool result = loops == -1 || _loop < loops;
             var targetTime = this.time + delta * timeScale;
 
             if (_wait_delay_flag)
@@ -250,8 +249,8 @@ namespace IFramework
                     this.time = targetTime;
                     CalculateView();
                 }
-
             onTick?.Invoke(this, this.time, delta);
+            bool result = loops == -1 || _loop < loops;
             return result;
         }
 
@@ -324,6 +323,7 @@ namespace IFramework
         {
 
             var src = getter.Invoke();
+
             T _cur = calc.Calculate(_start, _end, convertPercent, src, deltaPercent, snap);
             if (!src.Equals(_cur))
                 setter?.Invoke(_cur);
