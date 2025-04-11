@@ -51,35 +51,156 @@ namespace IFramework
 
     public interface ITweenContext
     {
+        bool valid { get; }
         bool isDone { get; }
         void Pause();
         void UnPause();
         void Complete(bool callComplete);
     }
+    public interface ITweenContext<T> : ITweenContext
+    {
+        T start { get; }
+        T end { get; }
+        bool snap { get; }
+    }
 
-    abstract class TweenContext : ITweenContext,IPoolObject
+    public interface ITweenContextBox
+    {
+        void AddTween(ITweenContext context);
+        void CancelTween(ITweenContext context);
+        void CancelTweenContexts();
+        void CompleteTween(ITweenContext context);
+        void CompleteTweenContexts();
+    }
+
+    class TweenContextBox : ITweenContextBox
+    {
+        private List<ITweenContext> contexts = new List<ITweenContext>();
+        public void AddTween(ITweenContext context)
+        {
+            contexts.Add(context);
+            context.OnComplete(RemoveTween);
+            context.OnCancel(RemoveTween);
+
+        }
+
+        private void RemoveTween(ITweenContext context)
+        {
+            if (contexts.Contains(context))
+            {
+                contexts.Remove(context);
+            }
+        }
+
+        public void CancelTween(ITweenContext context)
+        {
+            if (!contexts.Contains(context)) return;
+            context.Cancel();
+            RemoveTween(context);
+        }
+
+        public void CancelTweenContexts()
+        {
+            for (int i = 0; i < contexts.Count; i++)
+            {
+                var context = contexts[i];
+                context.Cancel();
+            }
+            contexts.Clear();
+        }
+
+        public void CompleteTween(ITweenContext context)
+        {
+            if (!contexts.Contains(context)) return;
+            context.Complete(true);
+            RemoveTween(context);
+        }
+        public void CompleteTweenContexts()
+        {
+            for (int i = 0; i < contexts.Count; i++)
+            {
+                var context = contexts[i];
+                context.Complete(true);
+            }
+            contexts.Clear();
+        }
+    }
+
+
+
+    abstract class TweenContext : ITweenContext, IPoolObject
     {
         bool ITweenContext.isDone => _context == null ? false : _context.isDone || _context.canceled;
 
-        private float _time { get; set; }
-        protected float percent { get { return (Mathf.Clamp01((_time) / duration)); } }
-        protected float convertPercent { get { return evaluator.Evaluate(percent, _time, duration); } }
-        protected float deltaPercent { get { return (1 - sourceDelta) + sourceDelta * percent; } }
-        private IValueEvaluator _evaluator = EaseEvaluator.Default;
-        internal IValueEvaluator evaluator { get { return _evaluator; } set { _evaluator = value; } }
-        internal LoopType _loopType = LoopType.ReStart;
-        internal int _loop = 1;
-        internal LoopType loopType { get { return _loopType; } set { _loopType = value; } }
-        internal int loop { get { return _loop; } set { _loop = value; } }
-        protected float duration { get; set; }
+        protected float percent => Mathf.Clamp01(time / duration);
+        protected float convertPercent => evaluator.Evaluate(percent, time, duration);
+        protected float deltaPercent => (1 - sourceDelta) + sourceDelta * percent;
 
-        internal event Action onComplete;
+        public bool valid { get; private set; }
 
 
-        public float sourceDelta { get; set; }
 
+        private float time { get; set; }
+        private IValueEvaluator evaluator { get; set; }
+        private int loops { get; set; }
+        private float timeScale { get; set; }
+        protected LoopType loopType { get; private set; }
+        protected float duration { get; private set; }
+        private event Action<ITweenContext> onComplete, onCancel;
+        private event Action<ITweenContext, float, float> onTick;
+
+        private float delay { get; set; }
+        private bool _wait_delay_flag;
+        private float sourceDelta { get; set; }
+        private int _loop;
         private ITimerContext _context;
+        private void Reset()
+        {
+            _wait_delay_flag = true;
+            _context = null;
+            onComplete = null;
+            onCancel = null;
+            onTick = null;
+            time = 0;
+            _loop = 0;
+            this.SetEvaluator(EaseEvaluator.Default);
+            this.SetLoop(LoopType.ReStart, 1);
+            this.SetSourceDelta(0);
+            this.SetTimeScale(1);
+            this.SetDelay(0);
+        }
+        void IPoolObject.OnGet()
+        {
+            Reset();
+            valid = true;
+        }
 
+        void IPoolObject.OnSet()
+        {
+            valid = false;
+            Reset();
+        }
+
+        protected void SetDuration(float duration) => this.duration = duration;
+
+        public void SetLoop(LoopType type, int loops)
+        {
+            this.loops = loops;
+            loopType = type;
+        }
+        public void SetSourceDelta(float delta) => sourceDelta = delta;
+        public void SetEvaluator(IValueEvaluator evaluator) => this.evaluator = evaluator;
+        public void OnComplete(Action<ITweenContext> action) => onComplete += action;
+        public void OnCancel(Action<ITweenContext> action) => onCancel += action;
+        public void OnTick(Action<ITweenContext, float, float> action) => onTick += action;
+
+        public void SetTimeScale(float value) => timeScale = value;
+        public void SetDelay(float value)
+        {
+            if (value <= 0.00002f)
+                value = 0.0002f;
+            delay = value;
+        }
 
         void ITweenContext.Pause() => _context?.Pause();
         void ITweenContext.UnPause() => _context?.UnPause();
@@ -90,78 +211,105 @@ namespace IFramework
             if (callComplete)
                 _context.Complete();
             else
+            {
                 _context.Cancel();
-            Tween.GetScheduler().Cycle(this);
+                onCancel?.Invoke(this);
+            }
+            CycleThis();
         }
+        private void CycleThis() => Tween.GetScheduler().Cycle(this);
 
-        private int _loop_count;
+
         protected abstract void OnLoopEnd();
-        private bool WhileCheck(float time)
+        private bool WhileCheck(float time, float delta)
         {
-            bool result = loop == -1 || _loop_count < loop;
-            var resultTime = time % duration;
-            if (duration - resultTime <= 0.01f)
+            bool result = loops == -1 || _loop < loops;
+            var targetTime = this.time + delta * timeScale;
+
+            if (_wait_delay_flag)
             {
-                SetTime(duration);
-                OnLoopEnd();
-                _loop_count++;
+                this.time = targetTime;
+                if (this.time >= delay)
+                {
+                    targetTime = this.time = 0;
+                    _wait_delay_flag = false;
+                }
             }
-            else
-            {
-                SetTime(resultTime);
+            if (!_wait_delay_flag)
+                if (targetTime >= duration)
+                {
+                    this.time = duration;
 
-            }
+                    CalculateView();
+                    OnLoopEnd();
+                    _loop++;
+                    this.time = 0;
+                }
+                else
+                {
+                    this.time = targetTime;
+                    CalculateView();
+                }
 
-
+            onTick?.Invoke(this, this.time, delta);
             return result;
         }
 
-        internal async void Run()
+        protected abstract void CalculateView();
+
+        public async void Run()
         {
             TweenScheduler scheduler = Tween.GetScheduler();
-            await scheduler.Frame();
+            //await scheduler.Frame();
             _context = scheduler.DoWhile(WhileCheck);
             await _context;
-            onComplete?.Invoke();
-            (this as ITweenContext).Complete(true);
+            onComplete?.Invoke(this);
+            CycleThis();
         }
 
 
 
-        private void SetTime(float time)
-        {
-            this._time = time;
-            Update();
-        }
-        protected abstract void Update();
-        private void Reset()
-        {
-            _context = null;
-            onComplete = null;
-            _time = 0;
-            _evaluator = EaseEvaluator.Default;
-            _loop_count = 0;
-            loop = 1;
-            loopType = LoopType.ReStart;
-            sourceDelta = 0;
-        }
-        void IPoolObject.OnGet() => Reset();
 
-        void IPoolObject.OnSet() => Reset();
+
+
+
     }
-    class TweenContext<T> : TweenContext
+    class TweenContext<T> : TweenContext, ITweenContext<T>
     {
 
         private static ValueCalculator<T> _calc;
-        private T start;
-        private T end;
+        public T start { get; private set; }
+        public T end { get; private set; }
+        public bool snap { get; private set; }
+
+
+        public void SetSnap(bool value) { snap = value; }
+        public void SetStart(T value)
+        {
+            if (_start.Equals(start))
+                _start = value;
+            if (_end.Equals(start))
+                _end = value;
+
+
+            start = value;
+        }
+        public void SetEnd(T value)
+        {
+            if (_start.Equals(end))
+                _start = value;
+            if (_end.Equals(end))
+                _end = value;
+
+
+            end = value;
+        }
 
         private T _start;
         private T _end;
 
         private Func<T> getter;
         private Action<T> setter;
-        private bool snap;
 
         private static ValueCalculator<T> calc
         {
@@ -172,11 +320,11 @@ namespace IFramework
                 return _calc;
             }
         }
-        protected sealed override void Update()
+        protected sealed override void CalculateView()
         {
 
             var src = getter.Invoke();
-            T _cur = calc.Calculator(_start, _end, convertPercent, src, deltaPercent, snap);
+            T _cur = calc.Calculate(_start, _end, convertPercent, src, deltaPercent, snap);
             if (!src.Equals(_cur))
                 setter?.Invoke(_cur);
         }
@@ -184,8 +332,9 @@ namespace IFramework
         {
             if (loopType == LoopType.PingPong)
             {
-                _start = end;
-                _end = start;
+                var temp = _start;
+                _start = _end;
+                _end = temp;
             }
             else if (loopType == LoopType.Add)
             {
@@ -198,7 +347,7 @@ namespace IFramework
         {
             this._start = this.start = start;
             this._end = this.end = end;
-            this.duration = duration;
+            SetDuration(duration);
             this.getter = getter;
             this.setter = setter;
             this.snap = snap;
@@ -208,30 +357,17 @@ namespace IFramework
 
 
 
-    class TweenScheduler : ITimerScheduler, ITimerContextBox, IDisposable
+    class TweenScheduler : ITimerScheduler
     {
         private TimerScheduler timer;
-        private TimerContextBox box;
         private Dictionary<Type, ISimpleObjectPool> contextPools;
 
         public TweenScheduler()
         {
             timer = TimerScheduler.CreateInstance<TimerScheduler>();
-            box = new TimerContextBox();
             contextPools = new Dictionary<Type, ISimpleObjectPool>();
         }
 
-        void ITimerContextBox.AddTimer(ITimerContext context) => box.AddTimer(context);
-
-        void ITimerContextBox.CancelTimer(ITimerContext context) => box.CancelTimer(context);
-
-        void ITimerContextBox.CancelTimers() => box.CancelTimers();
-        void ITimerContextBox.CompleteTimer(ITimerContext context) => box.CompleteTimer(context);
-        void ITimerContextBox.CompleteTimers() => box.CompleteTimers();
-        public void Dispose()
-        {
-            (this as ITimerContextBox).CancelTimers();
-        }
         public void Update()
         {
             timer.Update();
@@ -244,7 +380,7 @@ namespace IFramework
         private List<TweenContext> contexts_run = new List<TweenContext>();
         public TweenContext<T> AllocateContext<T>()
         {
-            Type type = typeof(T);
+            Type type = typeof(TweenContext<T>);
             ISimpleObjectPool pool = null;
             if (!contextPools.TryGetValue(type, out pool))
             {
@@ -291,7 +427,7 @@ namespace IFramework
         }
         protected override void OnDestroy()
         {
-            scheduler.Dispose();
+            scheduler.CancelAllTween();
             base.OnDestroy();
         }
 
@@ -333,8 +469,8 @@ namespace IFramework
         }
 
 
-        public static IAwaiter<ITweenContext> GetAwaiter(this ITweenContext context) => new ITweenContextAwaitor(context);
-        public static ITweenContext DoGoto<T>(T start, T end, float duration, Func<T> getter, Action<T> setter, bool snap)
+        public static IAwaiter<T> GetAwaiter<T>(this T context) where T : ITweenContext => new ITweenContextAwaitor<T>(context);
+        public static ITweenContext<T> DoGoto<T>(T start, T end, float duration, Func<T> getter, Action<T> setter, bool snap)
         {
             var context = GetScheduler().AllocateContext<T>();
             context.Config(start, end, duration, getter, setter, snap);
@@ -342,35 +478,79 @@ namespace IFramework
             return context;
         }
 
-        public static T OnComplete<T>(this T t, Action action) where T : ITweenContext
+        public static T OnComplete<T>(this T t, Action<ITweenContext> action) where T : ITweenContext
         {
-            (t as TweenContext).onComplete += action;
+            (t as TweenContext).OnComplete(action);
+            return t;
+        }
+        public static T OnCancel<T>(this T t, Action<ITweenContext> action) where T : ITweenContext
+        {
+            (t as TweenContext).OnCancel(action);
+            return t;
+        }
+        public static T OnTick<T>(this T t, Action<ITweenContext, float, float> action) where T : ITweenContext
+        {
+            (t as TweenContext).OnTick(action);
             return t;
         }
         public static T SetEvaluator<T>(this T t, IValueEvaluator evaluator) where T : ITweenContext
         {
-            (t as TweenContext).evaluator = evaluator;
+            (t as TweenContext).SetEvaluator(evaluator);
+            return t;
+        }
+        public static T SetTimeScale<T>(this T t, float value) where T : ITweenContext
+        {
+            (t as TweenContext).SetTimeScale(value);
+            return t;
+        }
+        public static T SetDelay<T>(this T t, float value) where T : ITweenContext
+        {
+            (t as TweenContext).SetDelay(value);
             return t;
         }
         public static T SetSourceDelta<T>(this T t, float delta) where T : ITweenContext
         {
-            (t as TweenContext).sourceDelta = delta;
+            (t as TweenContext).SetSourceDelta(delta);
             return t;
         }
         public static T SetEase<T>(this T t, Ease ease) where T : ITweenContext => t.SetEvaluator(new EaseEvaluator(ease));
 
         public static T SetAnimationCurve<T>(this T t, AnimationCurve curve) where T : ITweenContext => t.SetEvaluator(new AnimationCurveEvaluator(curve));
-        public static void CancelAllTween() => GetScheduler().CancelAllTween();
 
         public static T SetLoop<T>(this T context, LoopType type, int loops) where T : ITweenContext
         {
             var _context = (context as TweenContext);
-            _context.loop = loops;
-            _context.loopType = type;
+            _context.SetLoop(type, loops);
+            return context;
+        }
+
+        public static T AddTo<T>(this T context, ITweenContextBox box) where T : ITweenContext
+        {
+            box.AddTween(context);
             return context;
         }
 
         public static void Cancel(this ITweenContext context) => context.Complete(false);
+
+        public static ITweenContext<T> SetSnap<T>(this ITweenContext<T> t, bool value)
+        {
+            (t as TweenContext<T>).SetSnap(value);
+            return t;
+        }
+        public static ITweenContext<T> SetEnd<T>(this ITweenContext<T> t, T value)
+        {
+            (t as TweenContext<T>).SetEnd(value);
+            return t;
+        }
+        public static ITweenContext<T> SetStart<T>(this ITweenContext<T> t, T value)
+        {
+            (t as TweenContext<T>).SetStart(value);
+            return t;
+        }
+        public static ITweenContext<T> As<T>(this ITweenContext t) => t as ITweenContext<T>;
+
+        public static void CancelAllTween() => GetScheduler().CancelAllTween();
+
         static Dictionary<Type, object> value_calcs = new Dictionary<Type, object>()
         {
             { typeof(float), new ValueCalculator_Float() },
@@ -507,18 +687,20 @@ namespace IFramework
         }
         float IValueEvaluator.Evaluate(float percent, float time, float duration) => Evaluate(_ease, time, duration);
     }
-    struct ITweenContextAwaitor : IAwaiter<ITweenContext>
+    struct ITweenContextAwaitor<T> : IAwaiter<T> where T : ITweenContext
     {
-        private ITweenContext op;
+        private T op;
         private Queue<Action> actions;
-        public ITweenContextAwaitor(ITweenContext op)
+
+        public T GetResult() => op;
+        public ITweenContextAwaitor(T op)
         {
             this.op = op;
             actions = new Queue<Action>();
             op.OnComplete(OnCompleted);
         }
 
-        private void OnCompleted()
+        private void OnCompleted(ITweenContext context)
         {
             while (actions.Count > 0)
             {
@@ -528,7 +710,6 @@ namespace IFramework
 
         public bool IsCompleted => op.isDone;
 
-        public ITweenContext GetResult() => op;
         public void OnCompleted(Action continuation)
         {
             actions?.Enqueue(continuation);
@@ -538,18 +719,20 @@ namespace IFramework
         {
             OnCompleted(continuation);
         }
+
+
     }
 
 
     abstract class ValueCalculator<T>
     {
-        public abstract T Calculator(T start, T end, float percent, T srcValue, float srcPercent, bool snap);
+        public abstract T Calculate(T start, T end, float percent, T srcValue, float srcPercent, bool snap);
 
         public abstract T CalculatorEnd(T start, T end);
     }
     class ValueCalculator_Float : ValueCalculator<float>
     {
-        public override float Calculator(float start, float end, float percent, float srcValue, float srcPercent, bool snap)
+        public override float Calculate(float start, float end, float percent, float srcValue, float srcPercent, bool snap)
         {
             float dest = Mathf.Lerp(start, end, percent);
             dest = Mathf.Lerp(srcValue, dest, srcPercent);
@@ -562,7 +745,7 @@ namespace IFramework
     }
     class ValueCalculator_Int : ValueCalculator<int>
     {
-        public override int Calculator(int start, int end, float percent, int srcValue, float srcPercent, bool snap)
+        public override int Calculate(int start, int end, float percent, int srcValue, float srcPercent, bool snap)
         {
             float dest = Mathf.Lerp(start, end, percent);
             dest = Mathf.Lerp(srcValue, dest, srcPercent);
@@ -573,7 +756,7 @@ namespace IFramework
     }
     class ValueCalculator_Long : ValueCalculator<long>
     {
-        public override long Calculator(long start, long end, float percent, long srcValue, float srcPercent, bool snap)
+        public override long Calculate(long start, long end, float percent, long srcValue, float srcPercent, bool snap)
         {
             float dest = Mathf.Lerp(start, end, percent);
             dest = Mathf.Lerp(srcValue, dest, srcPercent);
@@ -584,7 +767,7 @@ namespace IFramework
     }
     class ValueCalculator_Short : ValueCalculator<short>
     {
-        public override short Calculator(short start, short end, float percent, short srcValue, float srcPercent, bool snap)
+        public override short Calculate(short start, short end, float percent, short srcValue, float srcPercent, bool snap)
         {
             float dest = Mathf.Lerp(start, end, percent);
             dest = Mathf.Lerp(srcValue, dest, srcPercent);
@@ -598,7 +781,7 @@ namespace IFramework
 
     class ValueCalculator_Bool : ValueCalculator<bool>
     {
-        public override bool Calculator(bool start, bool end, float percent, bool srcValue, float srcPercent, bool snap)
+        public override bool Calculate(bool start, bool end, float percent, bool srcValue, float srcPercent, bool snap)
         {
             return percent >= 1 ? end : start;
         }
@@ -611,7 +794,7 @@ namespace IFramework
     }
     class ValueCalculator_Color : ValueCalculator<Color>
     {
-        public override Color Calculator(Color start, Color end, float percent, Color srcValue, float srcPercent, bool snap)
+        public override Color Calculate(Color start, Color end, float percent, Color srcValue, float srcPercent, bool snap)
         {
             Color dest = Color.Lerp(start, end, percent);
             dest = Color.Lerp(srcValue, dest, srcPercent);
@@ -630,7 +813,7 @@ namespace IFramework
     }
     class ValueCalculator_Quaternion : ValueCalculator<Quaternion>
     {
-        public override Quaternion Calculator(Quaternion start, Quaternion end, float percent, Quaternion srcValue, float srcPercent, bool snap)
+        public override Quaternion Calculate(Quaternion start, Quaternion end, float percent, Quaternion srcValue, float srcPercent, bool snap)
         {
             Quaternion dest = Quaternion.Lerp(start, end, percent);
             dest = Quaternion.Lerp(srcValue, dest, srcPercent);
@@ -662,7 +845,7 @@ namespace IFramework
             r.height = Mathf.Lerp(a.height, b.height, t);
             return r;
         }
-        public override Rect Calculator(Rect start, Rect end, float percent, Rect srcValue, float srcPercent, bool snap)
+        public override Rect Calculate(Rect start, Rect end, float percent, Rect srcValue, float srcPercent, bool snap)
         {
             Rect dest = Lerp(start, start, end, percent);
             dest = Lerp(start, srcValue, dest, srcPercent);
@@ -691,7 +874,7 @@ namespace IFramework
     }
     class ValueCalculator_Vector2 : ValueCalculator<Vector2>
     {
-        public override Vector2 Calculator(Vector2 start, Vector2 end, float percent, Vector2 srcValue, float srcPercent, bool snap)
+        public override Vector2 Calculate(Vector2 start, Vector2 end, float percent, Vector2 srcValue, float srcPercent, bool snap)
         {
             Vector2 dest = Vector2.Lerp(start, end, percent);
             dest = Vector2.Lerp(srcValue, dest, srcPercent);
@@ -707,7 +890,7 @@ namespace IFramework
     }
     class ValueCalculator_Vector3 : ValueCalculator<Vector3>
     {
-        public override Vector3 Calculator(Vector3 start, Vector3 end, float percent, Vector3 srcValue, float srcPercent, bool snap)
+        public override Vector3 Calculate(Vector3 start, Vector3 end, float percent, Vector3 srcValue, float srcPercent, bool snap)
         {
             Vector3 dest = Vector3.Lerp(start, end, percent);
             dest = Vector3.Lerp(srcValue, dest, srcPercent);
@@ -724,7 +907,7 @@ namespace IFramework
     }
     class ValueCalculator_Vector4 : ValueCalculator<Vector4>
     {
-        public override Vector4 Calculator(Vector4 start, Vector4 end, float percent, Vector4 srcValue, float srcPercent, bool snap)
+        public override Vector4 Calculate(Vector4 start, Vector4 end, float percent, Vector4 srcValue, float srcPercent, bool snap)
         {
             Vector4 dest = Vector4.Lerp(start, end, percent);
             dest = Vector4.Lerp(srcValue, dest, srcPercent);
@@ -745,7 +928,7 @@ namespace IFramework
 
     class ValueCalculator_Vector2Int : ValueCalculator<Vector2Int>
     {
-        public override Vector2Int Calculator(Vector2Int start, Vector2Int end, float percent, Vector2Int srcValue, float srcPercent, bool snap)
+        public override Vector2Int Calculate(Vector2Int start, Vector2Int end, float percent, Vector2Int srcValue, float srcPercent, bool snap)
         {
             Vector2 dest = Vector2.Lerp(start, end, percent);
             dest = Vector2.Lerp(srcValue, dest, srcPercent);
@@ -760,7 +943,7 @@ namespace IFramework
     }
     class ValueCalculator_Vector3Int : ValueCalculator<Vector3Int>
     {
-        public override Vector3Int Calculator(Vector3Int start, Vector3Int end, float percent, Vector3Int srcValue, float srcPercent, bool snap)
+        public override Vector3Int Calculate(Vector3Int start, Vector3Int end, float percent, Vector3Int srcValue, float srcPercent, bool snap)
         {
             Vector3 dest = Vector3.Lerp(start, end, percent);
             dest = Vector3.Lerp(srcValue, dest, srcPercent);
