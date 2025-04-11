@@ -47,8 +47,23 @@ namespace IFramework
         {
             view = new View(this);
         }
+        async void TweenTest()
+        {
+
+            var tween = await Tween.DoGoto(this.view.OpenOne.transform.localScale, Vector3.one * 2, 0.2f, () => this.view.OpenOne.transform.localScale, (value) =>
+                {
+
+                    this.view.OpenOne.transform.localScale = value;
+
+                    //Debug.LogError(value);
+                }, false).SetLoop(LoopType.PingPong, 6).AddTo(this);
+            Debug.LogError("xxl");
+
+        }
         protected override void OnLoad()
         {
+            TweenTest();
+
             BindButton(this.view.remove, () =>
             {
                 Events.Publish(eve_key_remove, null);
@@ -75,18 +90,18 @@ namespace IFramework
             {
                 Debug.Log("add");
             });
-            Test();
+            //Test();
         }
         private async void Test()
         {
             Debug.LogError("HH0");
             Debug.LogError(Time.time);
 
-            await Game.Current.While((time) => Time.time <= 5f).AddTo(this);
+            await Game.Current.While((time, delta) => Time.time <= 5f).AddTo(this);
             Debug.LogError(Time.time);
 
             await Game.Current.Delay(1f).AddTo(this);
-            await Game.Current.Delay(1f, (time) =>
+            await Game.Current.Delay(1f, (time, delta) =>
             {
                 Debug.LogError("HH1");
             }).AddTo(this);

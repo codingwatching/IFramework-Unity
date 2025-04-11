@@ -14,7 +14,7 @@ using static IFramework.UI.UnityEventHelper;
 
 namespace IFramework.UI
 {
-    public abstract class GameObjectView : ITimerContextBox, IUIEventBox
+    public abstract class GameObjectView : ITimerContextBox, IUIEventBox, ITweenContextBox
     {
         public GameObject gameObject { get; private set; }
         public Transform transform { get; private set; }
@@ -152,6 +152,51 @@ namespace IFramework.UI
         }
 
 
+
+
+
+
+
+        void ITweenContextBox.AddTween(ITweenContext context)
+        {
+            if (_tweenBox == null)
+                _tweenBox = new TweenContextBox();
+            _tweenBox.AddTween(context);
+        }
+
+        public void CancelTween(ITweenContext context)
+        {
+            if (_tweenBox == null) return;
+            _tweenBox.CancelTween(context);
+        }
+
+        public void CancelTweenContexts()
+        {
+            if (_tweenBox == null) return;
+            _tweenBox.CancelTweenContexts();
+        }
+
+        public void CompleteTween(ITweenContext context)
+        {
+            if (_tweenBox == null) return;
+            _tweenBox.CompleteTween(context);
+        }
+
+        public void CompleteTweenContexts()
+        {
+            if (_tweenBox == null) return;
+            _tweenBox.CompleteTweenContexts();
+        }
+
+
+
+
+
+
+
+
+
+        private TweenContextBox _tweenBox;
         private TimerContextBox _timerbox;
         private EventBox _eventBox;
         private UIEventBox __eventBox_ui;
@@ -234,6 +279,7 @@ namespace IFramework.UI
         protected virtual void OnClearFields() { }
         public void ClearFields()
         {
+            CancelTweenContexts();
             CancelTimers();
             DisposeChildren();
             OnClearFields();
@@ -312,6 +358,6 @@ namespace IFramework.UI
             pool.Set(ins);
         }
 
-   
+
     }
 }
