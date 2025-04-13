@@ -62,7 +62,6 @@ namespace IFramework
         }
         protected override void OnLoad()
         {
-            TweenTest();
 
             BindButton(this.view.remove, () =>
             {
@@ -90,7 +89,8 @@ namespace IFramework
             {
                 Debug.Log("add");
             });
-            //Test();
+            TweenTest();
+            Test2();
         }
         private async void Test()
         {
@@ -108,6 +108,31 @@ namespace IFramework
             if (this.gameObject)
                 Debug.LogError("HH4");
         }
+
+        private async void Test2()
+        {
+            Debug.LogError("HH0");
+            Debug.LogError(Time.time);
+       
+            await Game.Current.NewTimerSequence()
+                .NewContext((scheduler) => 
+                scheduler.While((time, delta) => Time.time <= 5f).OnCompleteEx((context) =>
+                {
+                    Debug.LogError("HH1");
+                    Debug.LogError(Time.time);
+
+                }))
+                .NewContext((scheduler) => scheduler.Delay(1f, (time, delta) =>
+                {
+                    Debug.LogError("HH2");
+                }))
+                .Run().AddTo(this);
+            Debug.LogError(Time.time);
+
+            if (this.gameObject)
+                Debug.LogError("HH4");
+        }
+
         private Stack<PanelOneItemWidget> queue = new Stack<PanelOneItemWidget>();
         private void Remove()
         {
