@@ -34,6 +34,7 @@ namespace IFramework
         public T NewTimerContext<T>() where T : TimerContext, new() => _timerScheduler.NewTimerContext<T>();
         public ITimerContext RunTimerContext(TimerContext context) => _timerScheduler.RunTimerContext(context);
         public ITimerSequence NewTimerSequence() => _timerScheduler.NewTimerSequence();
+        public ITimerParallel NewTimerParallel() => _timerScheduler.NewTimerParallel();
 
 
 
