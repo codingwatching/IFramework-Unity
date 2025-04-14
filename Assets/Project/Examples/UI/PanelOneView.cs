@@ -50,13 +50,29 @@ namespace IFramework
         async void TweenTest()
         {
 
-            var tween = await Tween.DoGoto(this.view.OpenOne.transform.localScale, Vector3.one * 2, 0.2f, () => this.view.OpenOne.transform.localScale, (value) =>
+            var tween = await Tween.DoGoto(Vector3.one * 2, 0.2f, () => this.view.OpenOne.transform.localScale, (value) =>
                 {
 
                     this.view.OpenOne.transform.localScale = value;
 
                     //Debug.LogError(value);
                 }, false).SetLoop(LoopType.PingPong, 6).AddTo(this);
+            Debug.LogError("xxl");
+
+        }
+        async void TweenTest2()
+        {
+            await Tween.Parallel()
+                .NewContext(() => Tween.DoGoto(Vector3.one * 2, 0.2f, () => this.view.OpenOne.transform.localScale, (value) =>
+                  {
+                      this.view.OpenOne.transform.localScale = value;
+                  }, false).SetLoop(LoopType.PingPong, 6))
+               .NewContext(() => Tween.DoGoto(Vector3.one, 0.2f, () => this.view.OpenOne.transform.position, (value) =>
+               {
+                   this.view.OpenOne.transform.position = value;
+               }, false).SetLoop(LoopType.PingPong, 6))
+                        .Run().AddTo(this);
+
             Debug.LogError("xxl");
 
         }
@@ -89,8 +105,9 @@ namespace IFramework
             {
                 Debug.Log("add");
             });
-            TweenTest();
-            Test2();
+            //TweenTest();
+            TweenTest2();
+            //Test2();
         }
         private async void Test()
         {
@@ -113,20 +130,22 @@ namespace IFramework
         {
             Debug.LogError("HH0");
             Debug.LogError(Time.time);
-       
-            await Game.Current.NewTimerSequence()
-                .NewContext((scheduler) => 
-                scheduler.While((time, delta) => Time.time <= 5f).OnCompleteEx((context) =>
-                {
-                    Debug.LogError("HH1");
-                    Debug.LogError(Time.time);
 
-                }))
-                .NewContext((scheduler) => scheduler.Delay(1f, (time, delta) =>
-                {
-                    Debug.LogError("HH2");
-                }))
-                .Run().AddTo(this);
+            var seq = await Game.Current.NewTimerParallel()
+                     .NewContext((scheduler) =>
+                     scheduler.While((time, delta) => Time.time <= 5f).OnComplete((context) =>
+                     {
+                         Debug.LogError("HH1");
+                         Debug.LogError(Time.time);
+
+                     }))
+                     .NewContext((scheduler) => scheduler.Delay(1f, (time, delta) =>
+                     {
+                         Debug.LogError("HH2");
+                     }))
+                     .Run().AddTo(this);
+
+
             Debug.LogError(Time.time);
 
             if (this.gameObject)

@@ -56,7 +56,19 @@ namespace IFramework
         void Pause();
         void UnPause();
         void Complete(bool callComplete);
+        ITweenContext SetTimeScale(float timeScale);
     }
+    public interface ITweenSequence : ITweenContext
+    {
+        ITweenSequence NewContext(Func<ITweenContext> func);
+        ITweenSequence Run();
+    }
+    public interface ITweenParallel : ITweenContext
+    {
+        ITweenParallel NewContext(Func<ITweenContext> func);
+        ITweenParallel Run();
+    }
+
     public interface ITweenContext<T> : ITweenContext { }
 
     public interface ITweenContextBox
@@ -67,6 +79,334 @@ namespace IFramework
         void CompleteTween(ITweenContext context);
         void CompleteTweenContexts();
     }
+
+
+    class TweenSequence : ITweenSequence, IPoolObject
+    {
+        private Queue<Func<ITweenContext>> queue = new Queue<Func<ITweenContext>>();
+        internal TweenScheduler scheduler => Tween.GetScheduler();
+        public ITweenSequence NewContext(Func<ITweenContext> func)
+        {
+            if (func == null) return this;
+            queue.Enqueue(func);
+            return this;
+        }
+
+        public bool isDone { get; private set; }
+        public bool canceled { get; private set; }
+        public bool valid { get; private set; }
+        private Action<ITweenContext> onComplete;
+        private Action<ITweenContext> onCancel;
+        private Action<ITweenContext, float, float> onTick;
+        private float timeScele;
+        public void OnComplete(Action<ITweenContext> action) => onComplete += action;
+        public void OnCancel(Action<ITweenContext> action) => onCancel += action;
+        public void OnTick(Action<ITweenContext, float, float> action) => onTick += action;
+
+        private void Cancel()
+        {
+            if (canceled) return;
+            canceled = true;
+
+            inner?.Cancel();
+
+            onCancel?.Invoke(this);
+            scheduler.CycleContext(this);
+
+        }
+        private void Complete()
+        {
+            if (isDone) return;
+            isDone = true;
+            onComplete?.Invoke(this);
+            scheduler.CycleContext(this);
+        }
+        private void Reset()
+        {
+            onCancel = null;
+            isDone = false;
+            canceled = false;
+
+            onComplete = null;
+            onTick = null;
+            timeScele = 1;
+            inner = null;
+            queue.Clear();
+        }
+
+        public void Complete(bool callComplete)
+        {
+            if (callComplete)
+                Complete();
+            else
+                Cancel();
+        }
+
+
+
+
+        private ITweenContext inner;
+
+        private void RunNext(ITweenContext context)
+        {
+            if (canceled || isDone) return;
+            if (queue.Count > 0)
+            {
+                inner = queue.Dequeue().Invoke();
+                if (inner != null)
+                {
+                    inner.OnTick(_OnTick);
+                    inner.OnCancel(RunNext);
+                    inner.OnComplete(RunNext);
+                    inner?.SetTimeScale(this.timeScele);
+                }
+                else
+                {
+                    RunNext(context);
+                }
+            }
+            else
+            {
+                Complete();
+            }
+        }
+
+        private void _OnTick(ITweenContext context, float time, float delta)
+        {
+            onTick?.Invoke(this, time, delta);
+        }
+
+        public ITweenSequence Run()
+        {
+            canceled = false;
+            isDone = false;
+            RunNext(null);
+            return this;
+        }
+
+        public ITweenContext SetTimeScale(float timeScale)
+        {
+            if (!valid) return this;
+            this.timeScele = timeScale;
+            inner?.SetTimeScale(timeScale);
+            return this;
+        }
+
+        public void Pause()
+        {
+            if (!valid) return;
+            inner?.Pause();
+        }
+
+        public void UnPause()
+        {
+            if (!valid) return;
+            inner?.UnPause();
+        }
+
+
+
+
+
+
+        void IPoolObject.OnGet()
+        {
+            valid = true;
+            Reset();
+        }
+
+        void IPoolObject.OnSet()
+        {
+            valid = false;
+            Reset();
+        }
+
+
+
+
+    }
+
+    class TweenParallel : ITweenParallel, IPoolObject
+    {
+        private Queue<Func<ITweenContext>> queue = new Queue<Func<ITweenContext>>();
+        private List<ITweenContext> contexts = new List<ITweenContext>();
+
+        internal TweenScheduler scheduler => Tween.GetScheduler();
+        public ITweenParallel NewContext(Func<ITweenContext> func)
+        {
+            if (func == null) return this;
+            queue.Enqueue(func);
+            return this;
+        }
+
+        public bool isDone { get; private set; }
+        public bool canceled { get; private set; }
+        public bool valid { get; private set; }
+        private Action<ITweenContext> onComplete;
+        private Action<ITweenContext> onCancel;
+        private Action<ITweenContext, float, float> onTick;
+        private float timeScele;
+        public void OnComplete(Action<ITweenContext> action) => onComplete += action;
+        public void OnCancel(Action<ITweenContext> action) => onCancel += action;
+        public void OnTick(Action<ITweenContext, float, float> action) => onTick += action;
+
+        private void Cancel()
+        {
+            if (canceled) return;
+            canceled = true;
+
+            for (int i = 0; i < contexts.Count; i++)
+            {
+                var context = contexts[i];
+                context.Cancel();
+            }
+
+            onCancel?.Invoke(this);
+            scheduler.CycleContext(this);
+
+        }
+        private void Complete()
+        {
+            if (isDone) return;
+            isDone = true;
+            onComplete?.Invoke(this);
+            scheduler.CycleContext(this);
+        }
+        private void Reset()
+        {
+            onCancel = null;
+            isDone = false;
+            canceled = false;
+
+            onComplete = null;
+            onTick = null;
+            timeScele = 1;
+            this._time = this._delta = -1;
+            queue.Clear();
+            contexts.Clear();
+        }
+
+        public void Complete(bool callComplete)
+        {
+            if (callComplete)
+                Complete();
+            else
+                Cancel();
+        }
+
+
+
+
+        //private ITweenContext inner;
+
+        private void OnContextEnd(ITweenContext context)
+        {
+
+            if (canceled || isDone) return;
+            if (contexts.Count > 0)
+                contexts.Remove(context);
+            if (contexts.Count == 0)
+                Complete();
+        }
+        private float _time, _delta;
+        private void _OnTick(ITweenContext context, float time, float delta)
+        {
+            if (_time != time || _delta != delta)
+            {
+                this._time = time;
+                this._delta = delta;
+                onTick?.Invoke(this, time, delta);
+
+            }
+        }
+
+        public ITweenParallel Run()
+        {
+            canceled = false;
+            isDone = false;
+            if (queue.Count > 0)
+                while (queue.Count > 0)
+                {
+                    var context = queue.Dequeue().Invoke();
+                    context.OnCancel(OnContextEnd);
+                    context.OnComplete(OnContextEnd);
+                    context.OnTick(_OnTick);
+                    context.SetTimeScale(timeScele);
+                    contexts.Add(context);
+                }
+            else
+                Complete();
+            return this;
+        }
+
+        public ITweenContext SetTimeScale(float timeScale)
+        {
+            if (!valid) return this;
+            this.timeScele = timeScale;
+            for (int i = 0; i < contexts.Count; i++)
+            {
+                var context = contexts[i];
+                context.SetTimeScale(timeScale);
+            }
+            return this;
+        }
+
+        public void Pause()
+        {
+            if (!valid) return;
+            for (int i = 0; i < contexts.Count; i++)
+            {
+                var context = contexts[i];
+                context.Pause();
+            }
+        }
+
+        public void UnPause()
+        {
+            if (!valid) return;
+            for (int i = 0; i < contexts.Count; i++)
+            {
+                var context = contexts[i];
+                context.UnPause();
+            }
+        }
+
+
+
+
+
+
+        void IPoolObject.OnGet()
+        {
+            valid = true;
+            Reset();
+        }
+
+        void IPoolObject.OnSet()
+        {
+            valid = false;
+            Reset();
+        }
+
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     class TweenContextBox : ITweenContextBox
     {
@@ -121,6 +461,8 @@ namespace IFramework
         }
     }
 
+
+
     abstract class TweenContext : ITweenContext, IPoolObject
     {
         bool ITweenContext.isDone => _context == null ? false : _context.isDone || _context.canceled;
@@ -139,7 +481,7 @@ namespace IFramework
         public void OnCancel(Action<ITweenContext> action) => onCancel += action;
         public void OnTick(Action<ITweenContext, float, float> action) => onTick += action;
 
-        private void CycleThis() => Tween.GetScheduler().Cycle(this);
+        private void CycleThis() => Tween.GetScheduler().CycleContext(this);
         protected abstract ITimerContext CreateLoop(TweenScheduler scheduler);
         public async void Run()
         {
@@ -189,6 +531,7 @@ namespace IFramework
             CycleThis();
         }
 
+        public abstract ITweenContext SetTimeScale(float timeScale);
     }
     class TweenContext<T> : TweenContext, ITweenContext<T>
     {
@@ -332,7 +675,13 @@ namespace IFramework
 
             end = value;
         }
-        public void SetTimeScale(float value) => timeScale = value;
+        public override ITweenContext SetTimeScale(float value)
+        {
+
+             timeScale = value;
+            return this;
+        }
+
         public void SetDelay(float value)
         {
             if (value <= 0.00002f)
@@ -369,6 +718,7 @@ namespace IFramework
         T ITimerScheduler.NewTimerContext<T>() => timer.NewTimerContext<T>();
         ITimerContext ITimerScheduler.RunTimerContext(TimerContext context) => timer.RunTimerContext(context);
         ITimerSequence ITimerScheduler.NewTimerSequence() => timer.NewTimerSequence();
+        ITimerParallel ITimerScheduler.NewTimerParallel() => timer.NewTimerParallel();
 
         private List<ITweenContext> contexts_run = new List<ITweenContext>();
         public ITweenContext<T> AllocateContext<T>()
@@ -385,8 +735,36 @@ namespace IFramework
             contexts_run.Add(context);
             return context;
         }
+        public ITweenSequence AllocateSequence()
+        {
+            Type type = typeof(TweenSequence);
+            ISimpleObjectPool pool = null;
+            if (!contextPools.TryGetValue(type, out pool))
+            {
+                pool = new SimpleObjectPool<TweenSequence>();
+                contextPools.Add(type, pool);
+            }
+            var simple = pool as SimpleObjectPool<TweenSequence>;
+            var context = simple.Get();
+            //contexts_run.Add(context);
+            return context;
+        }
+        public ITweenParallel AllocateParallel()
+        {
+            Type type = typeof(TweenParallel);
+            ISimpleObjectPool pool = null;
+            if (!contextPools.TryGetValue(type, out pool))
+            {
+                pool = new SimpleObjectPool<TweenParallel>();
+                contextPools.Add(type, pool);
+            }
+            var simple = pool as SimpleObjectPool<TweenParallel>;
+            var context = simple.Get();
+            //contexts_run.Add(context);
+            return context;
+        }
 
-        internal void Cycle(ITweenContext context)
+        public void CycleContext(ITweenContext context)
         {
             Type type = context.GetType();
             ISimpleObjectPool pool = null;
@@ -395,7 +773,7 @@ namespace IFramework
             pool.SetObject(context);
         }
 
-        internal void CancelAllTween()
+        public void CancelAllTween()
         {
             for (int i = contexts_run.Count - 1; i >= 0; i--)
             {
@@ -493,8 +871,7 @@ namespace IFramework
 
 
 
-
-        public static ITweenContext<T> As<T>(this ITweenContext t) => t as ITweenContext<T>;
+        //public static ITweenContext<T> As<T>(this ITweenContext t) => t as ITweenContext<T>;
         private static TweenContext AsInstance<T>(this T t) where T : ITweenContext => t as TweenContext;
         private static TweenContext<T> AsInstance<T>(this ITweenContext<T> context) => context as TweenContext<T>;
         public static IAwaiter<T> GetAwaiter<T>(this T context) where T : ITweenContext => new ITweenContextAwaitor<T>(context);
@@ -504,9 +881,18 @@ namespace IFramework
             context.AsInstance().Config(start, end, duration, getter, setter, snap).Run();
             return context;
         }
+        public static ITweenContext<T> DoGoto<T>(T end, float duration, Func<T> getter, Action<T> setter, bool snap) => DoGoto(getter.Invoke(), end, duration, getter, setter, snap);
 
 
 
+        public static ITweenSequence Sequence() => GetScheduler().AllocateSequence();
+        public static ITweenParallel Parallel() => GetScheduler().AllocateParallel();
+
+        public static T SetTimeScaleEx<T>(this T t, float value) where T : ITweenContext
+        {
+            t.SetTimeScale(value);
+            return t;
+        }
         public static T AddTo<T>(this T context, ITweenContextBox box) where T : ITweenContext
         {
             box.AddTween(context);
@@ -515,17 +901,32 @@ namespace IFramework
         public static void Cancel(this ITweenContext context) => context.Complete(false);
         public static T OnComplete<T>(this T t, Action<ITweenContext> action) where T : ITweenContext
         {
-            t.AsInstance().OnComplete(action);
+            if (t is TweenSequence)
+                (t as TweenSequence).OnComplete(action);
+            else if(t is TweenParallel)
+                (t as TweenParallel).OnComplete(action);
+            else
+                t.AsInstance().OnComplete(action);
             return t;
         }
         public static T OnCancel<T>(this T t, Action<ITweenContext> action) where T : ITweenContext
         {
-            t.AsInstance().OnCancel(action);
+            if (t is TweenSequence)
+                (t as TweenSequence).OnCancel(action);
+            else if (t is TweenParallel)
+                (t as TweenParallel).OnCancel(action);
+            else
+                t.AsInstance().OnCancel(action);
             return t;
         }
         public static T OnTick<T>(this T t, Action<ITweenContext, float, float> action) where T : ITweenContext
         {
-            t.AsInstance().OnTick(action);
+            if (t is TweenSequence)
+                (t as TweenSequence).OnTick(action);
+            else if (t is TweenParallel)
+                (t as TweenParallel).OnTick(action);
+            else
+                t.AsInstance().OnTick(action);
             return t;
         }
 
@@ -538,11 +939,7 @@ namespace IFramework
             context.AsInstance().SetLoop(type, loops);
             return context;
         }
-        public static ITweenContext<T> SetTimeScale<T>(this ITweenContext<T> t, float value)
-        {
-            t.AsInstance().SetTimeScale(value);
-            return t;
-        }
+
         public static ITweenContext<T> SetDelay<T>(this ITweenContext<T> t, float value)
         {
             t.AsInstance().SetDelay(value);
