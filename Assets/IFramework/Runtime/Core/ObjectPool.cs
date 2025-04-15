@@ -6,6 +6,7 @@ namespace IFramework
 
     public interface IPoolObject
     {
+        bool valid { get; set; }
         void OnGet();
         void OnSet();
     }
@@ -37,7 +38,9 @@ namespace IFramework
             }
             if (t is IPoolObject)
             {
-                (t as IPoolObject).OnGet();
+                IPoolObject obj = t as IPoolObject;
+                obj.valid = true;
+                obj.OnGet();
             }
             OnGet(t);
 
@@ -52,7 +55,9 @@ namespace IFramework
                 {
                     if (t is IPoolObject)
                     {
-                        (t as IPoolObject).OnSet();
+                        IPoolObject obj = t as IPoolObject;
+                        obj.valid = false;
+                        obj.OnSet();
                     }
                     pool.Enqueue(t);
                 }

@@ -45,140 +45,134 @@ namespace IFramework
     }
     public interface ITimerContext
     {
-        bool valid { get; }
+        //string guid { get; }
         bool isDone { get; }
         bool canceled { get; }
-        void SetTimeScale(float timeScale);
-        void Pause();
-        void UnPause();
-        void Complete();
-        void Cancel();
-        //void OnComplete(Action<ITimerContext> action);
-        //void OnCancel(Action<ITimerContext> action);
-        //void OnTick(TimerAction action);
+
     }
 
 
-    class Timer : IPoolObject
+    public abstract class TimerContextBase : ITimerContext, IPoolObject
     {
+        //public string guid { get; private set; } = Guid.NewGuid().ToString();
+
         public bool isDone { get; private set; }
         public bool canceled { get; private set; }
-        public bool valid { get; private set; }
-        private float time;
-        private float timeScale;
-        public TimerContext context { get; private set; }
-        private bool pause;
+        public bool valid { get; set; }
+        internal TimerScheduler scheduler;
 
-        void IPoolObject.OnGet()
-        {
-            valid = true;
-            Reset();
-        }
-
-        void IPoolObject.OnSet()
-        {
-            valid = false;
-            Reset();
-        }
-
-        private void Reset()
-        {
-            this.timeScale = 1;
-            this.time = 0;
-            this.context = null;
-            this.pause = false;
-        }
-        public void Config(TimerContext context)
-        {
-            Pause();
-            this.context = context;
-            context.SetTimer(this);
-            isDone = false;
-            canceled = false;
-        }
-        public void Pause() => pause = true;
-        public void UnPause() => pause = false;
-        public void Update(float deltaTime)
-        {
-            if (canceled || pause || isDone) return;
-            deltaTime *= timeScale;
-            time += deltaTime;
-            context.Update(time, deltaTime);
-        }
-        public void InvokeComplete()
-        {
-            if (isDone) return;
-            isDone = true;
-
-        }
-
-        public void Cancel()
-        {
-            canceled = true;
-            Pause();
-        }
-        public void SetTimeScale(float timeScale) => this.timeScale = timeScale;
-
-    }
-    public abstract class TimerContext : ITimerContext, IPoolObject
-    {
-        private Timer timer;
+        //public bool valid { get; internal set; }
         private Action<ITimerContext> onComplete;
         private Action<ITimerContext> onCancel;
         private TimerAction onTick;
-        public bool valid => timer == null ? false : timer.valid;
+        protected float timeScale { get; private set; }
+        public void OnComplete(Action<ITimerContext> action) => onComplete += action;
+        public void OnCancel(Action<ITimerContext> action) => onCancel += action;
+        public void OnTick(TimerAction action) => onTick += action;
 
-        public bool isDone => timer.isDone;
-        public bool canceled => timer.canceled;
-
-        internal void Update(float time, float delta)
+        protected void InvokeTick(float time, float delta)
         {
             onTick?.Invoke(time, delta);
+
+        }
+        protected void InvokeCancel()
+        {
+            if (canceled) return;
+
+            canceled = true;
+            onCancel?.Invoke(this);
+        }
+        protected void InvokeComplete()
+        {
+            if (isDone) return;
+            isDone = true;
+            onComplete?.Invoke(this);
+        }
+
+        protected virtual void Reset()
+        {
+            onCancel = null;
+            isDone = false;
+            canceled = false;
+
+            onComplete = null;
+            onTick = null;
+            timeScale = 1;
+        }
+
+
+
+        public abstract void Cancel();
+        public abstract void Complete();
+
+
+        public virtual void SetTimeScale(float timeScale)
+        {
+            if (!valid) return;
+            this.timeScale = timeScale;
+        }
+
+        public abstract void Pause();
+
+        public abstract void UnPause();
+
+
+
+
+
+
+        void IPoolObject.OnGet() => Reset();
+
+        void IPoolObject.OnSet() => Reset();
+    }
+    public abstract class TimerContext : TimerContextBase, ITimerContext
+    {
+
+        private float time;
+        private bool pause;
+        public void Update(float delta)
+        {
+            if (canceled || pause || isDone) return;
+            delta *= timeScale;
+            time += delta;
+
+            InvokeTick(time, delta);
             OnUpdate(time, delta);
         }
-        internal void SetTimer(Timer timer) => this.timer = timer;
 
 
 
 
         protected abstract void OnUpdate(float time, float delta);
-        public void Pause() => timer.Pause();
-        public void UnPause() => timer.UnPause();
-        protected virtual void Reset()
+        public override void Pause() => pause = true;
+        public override void UnPause() => pause = false;
+        protected override void Reset()
         {
-            this.timer = null;
-            onComplete = null;
-            onCancel = null;
-            onTick = null;
+            base.Reset();
+            this.time = 0;
+
         }
-        public void Complete()
+        public override void Complete()
         {
-            this.timer.InvokeComplete();
-            onComplete?.Invoke(this);
+            if (isDone) return;
+            InvokeComplete();
         }
 
-        public void Cancel()
+        public override void Cancel()
         {
-            this.timer.Cancel();
-            onCancel?.Invoke(this);
+            if (canceled) return;
+            InvokeCancel();
         }
-        public void OnComplete(Action<ITimerContext> action) => onComplete += action;
-        public void OnCancel(Action<ITimerContext> action) => onCancel += action;
-        public void OnTick(TimerAction action) => onTick += action;
 
-        void IPoolObject.OnGet() => Reset();
 
-        void IPoolObject.OnSet() => Reset();
-
-        public void SetTimeScale(float timeScale) => timer.SetTimeScale(timeScale);
     }
     class TimerScheduler : UpdateModule, ITimerScheduler
     {
         private SimpleObjectPool<TimerSequence> seuqencesPool;
         private SimpleObjectPool<TimerParallel> parallelPool;
 
-        private SimpleObjectPool<Timer> pool;
-        private List<Timer> timers;
+        //private SimpleObjectPool<Timer> pool;
+        private List<TimerContext> timers;
 
         private Dictionary<Type, ISimpleObjectPool> contextPools;
 
@@ -208,29 +202,22 @@ namespace IFramework
             }
             var simple = pool as SimpleObjectPool<T>;
             var cls = simple.Get();
+            cls.scheduler = this;
             return cls;
         }
-        private void Cycle(Timer timer)
+        private void Cycle(TimerContext context)
         {
-            var type = timer.context.GetType();
+            var type = context.GetType();
             ISimpleObjectPool _pool = null;
             if (contextPools.TryGetValue(type, out _pool))
-                _pool.SetObject(timer.context);
-            pool.Set(timer);
+                _pool.SetObject(context);
+            //pool.Set(timer);
         }
 
-
-        private Timer Allocate(TimerContext context)
-        {
-            var cls = pool.Get();
-            cls.Config(context);
-            timers.Add(cls);
-            return cls;
-        }
         public ITimerContext RunTimerContext(TimerContext context)
         {
-            var timer = Allocate(context);
-            timer.UnPause();
+            context.UnPause();
+            timers.Add(context);
             return context;
         }
 
@@ -239,8 +226,8 @@ namespace IFramework
             parallelPool = new SimpleObjectPool<TimerParallel>();
             seuqencesPool = new SimpleObjectPool<TimerSequence>();
             contextPools = new Dictionary<Type, ISimpleObjectPool>();
-            pool = new SimpleObjectPool<Timer>();
-            timers = new List<Timer>();
+            //pool = new SimpleObjectPool<Timer>();
+            timers = new List<TimerContext>();
         }
 
         protected override void OnDispose()
@@ -346,10 +333,9 @@ namespace IFramework
         }
     }
 
-    class TimerSequence : ITimerSequence, IPoolObject
+    class TimerSequence : TimerContextBase, ITimerSequence
     {
         private Queue<TimerContextCreate> queue = new Queue<TimerContextCreate>();
-        internal TimerScheduler scheduler;
         public ITimerSequence NewContext(TimerContextCreate func)
         {
             if (func == null) return this;
@@ -357,54 +343,32 @@ namespace IFramework
             return this;
         }
 
-        public bool isDone { get; private set; }
-        public bool canceled { get; private set; }
-        public bool valid { get; private set; }
-        private Action<ITimerContext> onComplete;
-        private Action<ITimerContext> onCancel;
-        private TimerAction onTick;
-        private float timeScele;
-        public void OnComplete(Action<ITimerContext> action) => onComplete += action;
-        public void OnCancel(Action<ITimerContext> action) => onCancel += action;
-        public void OnTick(TimerAction action) => onTick += action;
-
-        public void Cancel()
+        public override void Cancel()
         {
             if (canceled) return;
-            canceled = true;
-
             inner?.Cancel();
-
-            onCancel?.Invoke(this);
+            InvokeCancel();
             scheduler.Cycle(this);
 
         }
 
-        private void Reset()
+        protected override void Reset()
         {
-            onCancel = null;
-            isDone = false;
-            canceled = false;
-
-            onComplete = null;
-            onTick = null;
-            timeScele = 1;
+            base.Reset();
             inner = null;
             queue.Clear();
         }
 
 
 
-        public void Complete()
+        public override void Complete()
         {
             if (isDone) return;
-            isDone = true;
-            onComplete?.Invoke(this);
+            InvokeComplete();
 
             scheduler.Cycle(this);
 
         }
-
 
         private ITimerContext inner;
 
@@ -416,10 +380,10 @@ namespace IFramework
                 inner = queue.Dequeue().Invoke(this.scheduler);
                 if (inner != null)
                 {
-                    inner.OnTick(onTick);
+                    inner.OnTick(InvokeTick);
                     inner.OnCancel(RunNext);
                     inner.OnComplete(RunNext);
-                    inner.SetTimeScale(timeScele);
+                    inner.SetTimeScale(timeScale);
                 }
                 else
                 {
@@ -434,26 +398,24 @@ namespace IFramework
 
         public ITimerSequence Run()
         {
-            canceled = false;
-            isDone = false;
             RunNext(null);
             return this;
         }
 
-        public void SetTimeScale(float timeScale)
+        public override void SetTimeScale(float timeScale)
         {
             if (!valid) return;
-            this.timeScele = timeScale;
+            base.SetTimeScale(timeScale);
             inner?.SetTimeScale(timeScale);
         }
 
-        public void Pause()
+        public override void Pause()
         {
             if (!valid) return;
             inner?.Pause();
         }
 
-        public void UnPause()
+        public override void UnPause()
         {
             if (!valid) return;
             inner?.UnPause();
@@ -464,24 +426,14 @@ namespace IFramework
 
 
 
-        void IPoolObject.OnGet()
-        {
-            valid = true;
-            Reset();
-        }
 
-        void IPoolObject.OnSet()
-        {
-            valid = false;
-            Reset();
-        }
     }
-    class TimerParallel : ITimerParallel, IPoolObject
+    class TimerParallel : TimerContextBase, ITimerParallel
     {
+
         private Queue<TimerContextCreate> queue = new Queue<TimerContextCreate>();
         private List<ITimerContext> contexts = new List<ITimerContext>();
 
-        internal TimerScheduler scheduler;
         public ITimerParallel NewContext(TimerContextCreate func)
         {
             if (func == null) return this;
@@ -489,40 +441,22 @@ namespace IFramework
             return this;
         }
 
-        public bool isDone { get; private set; }
-        public bool canceled { get; private set; }
-        public bool valid { get; private set; }
-        private Action<ITimerContext> onComplete;
-        private Action<ITimerContext> onCancel;
-        private TimerAction onTick;
-        private float timeScele;
-        public void OnComplete(Action<ITimerContext> action) => onComplete += action;
-        public void OnCancel(Action<ITimerContext> action) => onCancel += action;
-        public void OnTick(TimerAction action) => onTick += action;
 
-        public void Cancel()
+        public override void Cancel()
         {
             if (canceled) return;
-            canceled = true;
-
             for (int i = 0; i < contexts.Count; i++)
             {
                 var context = contexts[i];
                 context.Cancel();
             }
-            onCancel?.Invoke(this);
+            InvokeCancel();
             scheduler.Cycle(this);
         }
 
-        private void Reset()
+        protected override void Reset()
         {
-            onCancel = null;
-            isDone = false;
-            canceled = false;
-
-            onComplete = null;
-            onTick = null;
-            timeScele = 1;
+            base.Reset();
             this._delta = this._time = -1;
             queue.Clear();
             contexts.Clear();
@@ -530,11 +464,10 @@ namespace IFramework
 
 
 
-        public void Complete()
+        public override void Complete()
         {
             if (isDone) return;
-            isDone = true;
-            onComplete?.Invoke(this);
+            InvokeComplete();
 
             scheduler.Cycle(this);
 
@@ -553,8 +486,7 @@ namespace IFramework
 
         public ITimerParallel Run()
         {
-            canceled = false;
-            isDone = false;
+
 
             if (queue.Count > 0)
                 while (queue.Count > 0)
@@ -563,7 +495,7 @@ namespace IFramework
                     context.OnCancel(OnContextEnd);
                     context.OnComplete(OnContextEnd);
                     context.OnTick(_OnTick);
-                    context.SetTimeScale(timeScele);
+                    context.SetTimeScale(timeScale);
 
                     contexts.Add(context);
                 }
@@ -579,48 +511,31 @@ namespace IFramework
             {
                 this._time = time;
                 this._delta = delta;
-                onTick?.Invoke(this._time, this._delta);
+                InvokeTick(this._time, this._delta);
 
             }
         }
 
-        public void SetTimeScale(float timeScale)
+        public override void SetTimeScale(float timeScale)
         {
             if (!valid) return;
-            this.timeScele = timeScale;
+            base.SetTimeScale(timeScale);
             for (var i = 0; i < contexts.Count; i++)
                 contexts[i].SetTimeScale(timeScale);
         }
 
-        public void Pause()
+        public override void Pause()
         {
             if (!valid) return;
             for (var i = 0; i < contexts.Count; i++)
                 contexts[i].Pause();
         }
 
-        public void UnPause()
+        public override void UnPause()
         {
             if (!valid) return;
             for (var i = 0; i < contexts.Count; i++)
                 contexts[i].UnPause();
-        }
-
-
-
-
-
-
-        void IPoolObject.OnGet()
-        {
-            valid = true;
-            Reset();
-        }
-
-        void IPoolObject.OnSet()
-        {
-            valid = false;
-            Reset();
         }
     }
 
@@ -636,37 +551,47 @@ namespace IFramework
         }
         public static T OnComplete<T>(this T context, Action<ITimerContext> action) where T : ITimerContext
         {
-            if (context is TimerContext)
-                (context as TimerContext).OnComplete(action);
-            else if (context is TimerSequence)
-                (context as TimerSequence).OnComplete(action);
-            else if (context is TimerParallel)
-                (context as TimerParallel).OnComplete(action);
+            context.AsContextBase().OnComplete(action);
             return context;
         }
         public static T OnCancel<T>(this T context, Action<ITimerContext> action) where T : ITimerContext
         {
-            if (context is TimerContext)
-                (context as TimerContext).OnCancel(action);
-            else if (context is TimerSequence)
-                (context as TimerSequence).OnCancel(action);
-            else if (context is TimerParallel)
-                (context as TimerParallel).OnCancel(action);
+            context.AsContextBase().OnCancel(action);
             return context;
         }
         public static T OnTick<T>(this T context, TimerAction action) where T : ITimerContext
         {
-            if (context is TimerContext)
-                (context as TimerContext).OnTick(action);
-            else if (context is TimerSequence)
-                (context as TimerSequence).OnTick(action);
-            else if (context is TimerParallel)
-                (context as TimerParallel).OnTick(action);
+            context.AsContextBase().OnTick(action);
             return context;
         }
 
+        public static T SetTimeScale<T>(this T t, float timeScale) where T : ITimerContext
+        {
+            t.AsContextBase().SetTimeScale(timeScale);
+            return t;
+        }
+        public static T Pause<T>(this T t) where T : ITimerContext
+        {
+            t.AsContextBase().Pause();
 
-
+            return t;
+        }
+        public static T UnPause<T>(this T t) where T : ITimerContext
+        {
+            t.AsContextBase().UnPause();
+            return t;
+        }
+        public static T Complete<T>(this T t) where T : ITimerContext
+        {
+            t.AsContextBase().Complete();
+            return t;
+        }
+        public static T Cancel<T>(this T t) where T : ITimerContext
+        {
+            t.AsContextBase().Cancel();
+            return t;
+        }
+        private static TimerContextBase AsContextBase(this ITimerContext t) => t as TimerContextBase;
 
 
 
