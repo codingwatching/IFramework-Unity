@@ -77,7 +77,7 @@ namespace IFramework
 
             Debug.LogError("xxl");
 
-            await Game.Current.Delay(0.5f);
+            await Game.Current.Delay(0.5f).AddTo(this);
             await _tween.ReStart();
 
             Debug.LogError("xxl");
