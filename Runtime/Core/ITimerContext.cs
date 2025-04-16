@@ -64,12 +64,20 @@ namespace IFramework
         //public bool valid { get; internal set; }
         private Action<ITimerContext> onComplete;
         private Action<ITimerContext> onCancel;
+        private Action<ITimerContext> onBegin;
+
         private TimerAction onTick;
         protected float timeScale { get; private set; }
         public void OnComplete(Action<ITimerContext> action) => onComplete += action;
         public void OnCancel(Action<ITimerContext> action) => onCancel += action;
         public void OnTick(TimerAction action) => onTick += action;
+        public void OnBegin(Action<ITimerContext> action) => onBegin += action;
 
+        protected void InvokeBegin()
+        {
+            onBegin?.Invoke(this);
+
+        }
         protected void InvokeTick(float time, float delta)
         {
             onTick?.Invoke(time, delta);
@@ -91,12 +99,17 @@ namespace IFramework
 
         protected virtual void Reset()
         {
+            onBegin = null;
             onCancel = null;
+            onComplete = null;
+            onTick = null;
+
+
+
+
             isDone = false;
             canceled = false;
 
-            onComplete = null;
-            onTick = null;
             timeScale = 1;
         }
 
@@ -121,18 +134,30 @@ namespace IFramework
 
 
 
-        void IPoolObject.OnGet() => Reset();
+        void IPoolObject.OnGet()
+        {
+            Reset();
+        }
 
-        void IPoolObject.OnSet() => Reset();
+        void IPoolObject.OnSet()
+        {
+            Reset();
+        }
     }
     public abstract class TimerContext : TimerContextBase, ITimerContext
     {
 
         private float time;
         private bool pause;
+        private bool beginCalled;
         public void Update(float delta)
         {
             if (canceled || pause || isDone) return;
+            if (!beginCalled)
+            {
+                InvokeBegin();
+                beginCalled = true;
+            }
             delta *= timeScale;
             time += delta;
 
@@ -150,18 +175,21 @@ namespace IFramework
         {
             base.Reset();
             this.time = 0;
-
+            this.beginCalled = false;
         }
         public override void Complete()
         {
-            if (isDone) return;
+            if (!valid || isDone) return;
             InvokeComplete();
+            //scheduler.Cycle(this);
         }
 
         public override void Cancel()
         {
-            if (canceled) return;
+            if (!valid || canceled) return;
             InvokeCancel();
+            //scheduler.Cycle(this);
+
         }
 
 
@@ -190,6 +218,14 @@ namespace IFramework
             return seq;
         }
         public void Cycle(TimerSequence seq) => seuqencesPool.Set(seq);
+        private void Cycle(TimerContext context)
+        {
+            var type = context.GetType();
+            ISimpleObjectPool _pool = null;
+            if (contextPools.TryGetValue(type, out _pool))
+                _pool.SetObject(context);
+            //pool.Set(timer);
+        }
         public void Cycle(TimerParallel parallel) => parallelPool.Set(parallel);
         public T NewTimerContext<T>() where T : TimerContext, new()
         {
@@ -204,14 +240,6 @@ namespace IFramework
             var cls = simple.Get();
             cls.scheduler = this;
             return cls;
-        }
-        private void Cycle(TimerContext context)
-        {
-            var type = context.GetType();
-            ISimpleObjectPool _pool = null;
-            if (contextPools.TryGetValue(type, out _pool))
-                _pool.SetObject(context);
-            //pool.Set(timer);
         }
 
         public ITimerContext RunTimerContext(TimerContext context)
@@ -346,7 +374,6 @@ namespace IFramework
         public override void Cancel()
         {
             if (canceled) return;
-            inner?.Cancel();
             InvokeCancel();
             scheduler.Cycle(this);
 
@@ -398,6 +425,7 @@ namespace IFramework
 
         public ITimerSequence Run()
         {
+            InvokeBegin();
             RunNext(null);
             return this;
         }
@@ -487,7 +515,7 @@ namespace IFramework
         public ITimerParallel Run()
         {
 
-
+            InvokeBegin();
             if (queue.Count > 0)
                 while (queue.Count > 0)
                 {
@@ -557,6 +585,11 @@ namespace IFramework
         public static T OnCancel<T>(this T context, Action<ITimerContext> action) where T : ITimerContext
         {
             context.AsContextBase().OnCancel(action);
+            return context;
+        }
+        public static T OnBegin<T>(this T context, Action<ITimerContext> action) where T : ITimerContext
+        {
+            context.AsContextBase().OnBegin(action);
             return context;
         }
         public static T OnTick<T>(this T context, TimerAction action) where T : ITimerContext
