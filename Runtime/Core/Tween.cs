@@ -596,7 +596,7 @@ namespace IFramework
     }
     public enum TweenType
     {
-        Normal, Shake
+        Normal, Shake, Punch, Jump
     }
     class TweenContext<T> : TweenContext, ITweenContext<T>
     {
@@ -621,6 +621,8 @@ namespace IFramework
 
 
         private TweenType _mode;
+        private int jumpCount;
+        private float jumpDamping;
 
         private static ValueCalculator<T> calc
         {
@@ -655,6 +657,7 @@ namespace IFramework
         private int frequency;
         private float dampingRatio;
         private T strength;
+
 
         private bool LoopLogic(float time, float delta)
         {
@@ -702,7 +705,7 @@ namespace IFramework
 
 
             var src = getter.Invoke();
-            T _cur = calc.Calculate(_mode, _start, _end, _convertPercent, src, _deltaPercent, snap, strength, frequency, dampingRatio);
+            T _cur = calc.Calculate(_mode, _start, _end, _convertPercent, src, _deltaPercent, snap, strength, frequency, dampingRatio, jumpCount, jumpDamping);
             if (!src.Equals(_cur))
                 setter?.Invoke(_cur);
         }
@@ -749,6 +752,28 @@ namespace IFramework
 
             return this;
         }
+        public TweenContext<T> PunchConfig(T start, T end, float duration, Func<T> getter, Action<T> setter, bool snap, T strength,
+       int frequency, float dampingRatio)
+        {
+            this.Config(start, end, duration, getter, setter, snap);
+            _mode = TweenType.Punch;
+            this.frequency = frequency;
+            this.dampingRatio = dampingRatio;
+            this.strength = strength;
+
+            return this;
+        }
+        public TweenContext<T> JumpConfig(T start, T end, float duration, Func<T> getter, Action<T> setter, bool snap, T strength,
+  int jumpCount, float jumpDamping)
+        {
+            this.Config(start, end, duration, getter, setter, snap);
+            _mode = TweenType.Jump;
+            this.jumpCount = jumpCount;
+            this.jumpDamping = jumpDamping;
+            this.strength = strength;
+
+            return this;
+        }
         public void SetSourceDelta(float delta) => sourceDelta = delta;
         public void SetEvaluator(IValueEvaluator evaluator) => this.evaluator = evaluator;
         public void SetSnap(bool value) => snap = value;
@@ -786,10 +811,13 @@ namespace IFramework
             loopType = type;
         }
 
-        public void SetDuration(float duration)
-        {
-            this.duration = duration;
-        }
+        public void SetDuration(float duration) => this.duration = duration;
+        public void SetFrequency(int duration) => this.frequency = duration;
+        public void SetStrength(T duration) => this.strength = duration;
+        public void SetDampingRatio(float duration) => this.dampingRatio = duration;
+        public void SetJumpDamping(float jumpDamping) => this.jumpDamping = jumpDamping;
+        public void SetJumpCount(int jumpCount) => this.jumpCount = jumpCount;
+
     }
 
 
@@ -996,13 +1024,37 @@ namespace IFramework
             context.AsInstance().ShakeConfig(start, end, duration, getter, setter, snap, strength, frequency, dampingRatio);
             return context;
         }
+
         public static ITweenContext<T> DoShake<T>(T end, float duration, Func<T> getter, Action<T> setter, T strength,
           int frequency = 10, float dampingRatio = 1, bool snap = false, bool autoRun = true)
         {
             return DoShake<T>(getter.Invoke(), end, duration, getter, setter, strength, frequency, dampingRatio, snap, autoRun);
         }
+        public static ITweenContext<T> DoPunch<T>(T start, T end, float duration, Func<T> getter, Action<T> setter, T strength,
+      int frequency = 10, float dampingRatio = 1, bool snap = false, bool autoRun = true)
+        {
+            var context = GetScheduler().AllocateContext<T>(autoRun);
+            context.AsInstance().PunchConfig(start, end, duration, getter, setter, snap, strength, frequency, dampingRatio);
+            return context;
+        }
+        public static ITweenContext<T> DoPunch<T>(T end, float duration, Func<T> getter, Action<T> setter, T strength,
+       int frequency = 10, float dampingRatio = 1, bool snap = false, bool autoRun = true)
+        {
+            return DoPunch<T>(getter.Invoke(), end, duration, getter, setter, strength, frequency, dampingRatio, snap, autoRun);
+        }
+        public static ITweenContext<T> DoJump<T>(T start, T end, float duration, Func<T> getter, Action<T> setter, T strength,
+   int jumpCount = 5, float jumpDamping = 2f, bool snap = false, bool autoRun = true)
+        {
+            var context = GetScheduler().AllocateContext<T>(autoRun);
+            context.AsInstance().JumpConfig(start, end, duration, getter, setter, snap, strength, jumpCount, jumpDamping);
+            return context;
+        }
+        public static ITweenContext<T> DoJump<T>(T end, float duration, Func<T> getter, Action<T> setter, T strength,
+int jumpCount = 5, float jumpDamping = 2f, bool snap = false, bool autoRun = true)
+        {
+            return DoJump<T>(getter.Invoke(), end, duration, getter, setter, strength, jumpCount, jumpDamping, snap, autoRun);
 
-
+        }
         public static ITweenGroup Sequence() => GetScheduler().AllocateSequence();
         public static ITweenGroup Parallel() => GetScheduler().AllocateParallel();
 
@@ -1133,9 +1185,34 @@ namespace IFramework
             t.AsInstance().SetSnap(value);
             return t;
         }
-        internal static ITweenContext<T> SetDuration<T>(this ITweenContext<T> t, float value)
+        public static ITweenContext<T> SetDuration<T>(this ITweenContext<T> t, float value)
         {
             t.AsInstance().SetDuration(value);
+            return t;
+        }
+        public static ITweenContext<T> SetFrequency<T>(this ITweenContext<T> t, int value)
+        {
+            t.AsInstance().SetFrequency(value);
+            return t;
+        }
+        public static ITweenContext<T> SetDampingRatio<T>(this ITweenContext<T> t, float value)
+        {
+            t.AsInstance().SetDampingRatio(value);
+            return t;
+        }
+        public static ITweenContext<T> SetJumpCount<T>(this ITweenContext<T> t, int value)
+        {
+            t.AsInstance().SetJumpCount(value);
+            return t;
+        }
+        public static ITweenContext<T> SetJumpDamping<T>(this ITweenContext<T> t, float value)
+        {
+            t.AsInstance().SetJumpDamping(value);
+            return t;
+        }
+        public static ITweenContext<T> SetStrength<T>(this ITweenContext<T> t, T value)
+        {
+            t.AsInstance().SetStrength(value);
             return t;
         }
         //public static ITweenContext<T> SetEnd<T>(this ITweenContext<T> t, T value)
@@ -1301,6 +1378,20 @@ namespace IFramework
     {
         public const float E = 2.71828175F;
         public const float PI = 3.14159274F;
+        protected static void EvaluateJump(int jumpCount, float percent, out int devCount, out float jumpAdd)
+        {
+            if (percent == 0 || percent == 1)
+            {
+                jumpAdd = 0;
+                devCount = 0;
+                return;
+            }
+
+            var gap = 1f / jumpCount;
+            var _percent = (percent % gap) * jumpCount;
+            devCount = Mathf.FloorToInt(percent / gap);
+            jumpAdd = (1 - (4 * Mathf.Pow(_percent - 0.5f, 2)));
+        }
         protected static float EvaluateStrength(int frequency, float dampingRatio, float t)
         {
             if (t == 1f || t == 0f)
@@ -1312,22 +1403,44 @@ namespace IFramework
             return Mathf.Cos(angularFrequency * t) * Mathf.Pow(E, -dampingFactor * t);
         }
         public abstract T Calculate(TweenType mode, T start, T end, float percent, T srcValue,
-            float srcPercent, bool snap, T strength, int frequency, float dampingRatio);
+            float srcPercent, bool snap, T strength, int frequency, float dampingRatio, int jumpCount, float jumpDamping);
         public abstract T CalculatorEnd(T start, T end);
-        protected static float Range(float min, float max) => Random.Range(min, max);
-        protected static float GetRandomPercent(float percent) => 0.5f - Mathf.Abs(0.5f - percent);
+
+
+
+        protected static float Range(float min, float max) => UnityEngine.Random.Range(min, max);
+
+        protected static float Range1() => Range(-1, 1);
     }
     class ValueCalculator_Float : ValueCalculator<float>
     {
-        public override float Calculate(TweenType mode, float start, float end, float percent, float srcValue, float srcPercent, bool snap, float strength, int frequency, float dampingRatio)
+        public override float Calculate(TweenType mode, float start, float end, float percent, float srcValue, float srcPercent, bool snap, float strength, int frequency, float dampingRatio, int jumpCount, float jumpDamping)
         {
             float dest = Mathf.Lerp(start, end, percent);
             dest = Mathf.Lerp(srcValue, dest, srcPercent);
-            if (mode == TweenType.Shake)
+            if (mode == TweenType.Shake || mode == TweenType.Punch)
             {
-                strength = EvaluateStrength(frequency, dampingRatio, percent) * strength;
-                strength += Range(-strength, strength) * GetRandomPercent(percent);
-                dest += strength;
+                strength = strength * end;
+
+                var s = EvaluateStrength(frequency, dampingRatio, percent) * strength;
+                if (mode == TweenType.Punch)
+                    dest += s;
+
+                else
+                {
+                    s *= percent;
+                    dest += s * Range1();
+                }
+            }
+            else if (mode == TweenType.Jump)
+            {
+                int devCount;
+                float jumpAdd;
+                EvaluateJump(jumpCount, percent, out devCount, out jumpAdd);
+                for (int i = 0; i < devCount; i++)
+                    strength /= jumpDamping;
+                dest += strength * jumpAdd;
+
             }
             if (snap)
                 return Mathf.RoundToInt(dest);
@@ -1340,15 +1453,36 @@ namespace IFramework
     }
     class ValueCalculator_Int : ValueCalculator<int>
     {
-        public override int Calculate(TweenType mode, int start, int end, float percent, int srcValue, float srcPercent, bool snap, int strength, int frequency, float dampingRatio)
+
+
+        public override int Calculate(TweenType mode, int start, int end, float percent, int srcValue, float srcPercent, bool snap, int strength, int frequency, float dampingRatio, int jumpCount, float jumpDamping)
         {
             float dest = Mathf.Lerp(start, end, percent);
             dest = Mathf.Lerp(srcValue, dest, srcPercent);
-            if (mode == TweenType.Shake)
+            if (mode == TweenType.Shake || mode == TweenType.Punch)
             {
-                strength = (int)EvaluateStrength(frequency, dampingRatio, percent) * strength;
-                strength += (int)(Range(-strength, strength) * GetRandomPercent(percent));
-                dest += strength;
+                strength = strength * end;
+
+                var s = EvaluateStrength(frequency, dampingRatio, percent) * strength;
+                if (mode == TweenType.Punch)
+                    dest += s;
+
+                else
+                {
+                    s *= percent;
+                    dest += s * Range1();
+                }
+            }
+            else if (mode == TweenType.Jump)
+            {
+                int devCount;
+                float jumpAdd;
+                EvaluateJump(jumpCount, percent, out devCount, out jumpAdd);
+                float _s = (float)strength;
+                for (int i = 0; i < devCount; i++)
+                    _s /= jumpDamping;
+                dest += _s * jumpAdd;
+
             }
             return Mathf.RoundToInt(dest);
         }
@@ -1360,22 +1494,38 @@ namespace IFramework
 
     class ValueCalculator_Color : ValueCalculator<Color>
     {
-
-        public override Color Calculate(TweenType mode, Color start, Color end, float percent, Color srcValue, float srcPercent, bool snap, Color strength, int frequency, float dampingRatio)
+        public override Color Calculate(TweenType mode, Color start, Color end, float percent, Color srcValue, float srcPercent, bool snap, Color strength, int frequency, float dampingRatio, int jumpCount, float jumpDamping)
         {
             Color dest = Color.Lerp(start, end, percent);
             dest = Color.Lerp(srcValue, dest, srcPercent);
 
-            if (mode == TweenType.Shake)
+            if (mode == TweenType.Shake || mode == TweenType.Punch)
             {
-                strength = EvaluateStrength(frequency, dampingRatio, percent) * strength;
+                strength = new Color(strength.r * end.r, strength.g * end.g, strength.b * strength.b, strength.a * end.a);
 
-                var _per = GetRandomPercent(percent);
-                strength += new Color(Range(-strength.r, strength.r),
-                   Range(-strength.g, strength.g),
-                   Range(-strength.b, strength.b),
-                   Range(-strength.a, strength.a)) * _per;
-                dest += strength;
+                var s = EvaluateStrength(frequency, dampingRatio, percent) * strength;
+                if (mode == TweenType.Punch)
+                    dest += s;
+
+                else
+                {
+                    s *= percent;
+                    dest.r += s.r * Range1();
+                    dest.g += s.g * Range1();
+                    dest.b += s.b * Range1();
+                    dest.a += s.a * Range1();
+
+                }
+            }
+            else if (mode == TweenType.Jump)
+            {
+                int devCount;
+                float jumpAdd;
+                EvaluateJump(jumpCount, percent, out devCount, out jumpAdd);
+                for (int i = 0; i < devCount; i++)
+                    strength /= jumpDamping;
+                dest += strength * jumpAdd;
+
             }
 
             if (snap)
@@ -1402,25 +1552,46 @@ namespace IFramework
             r.height = Mathf.Lerp(a.height, b.height, t);
             return r;
         }
-
-
-        public override Rect Calculate(TweenType mode, Rect start, Rect end, float percent, Rect srcValue, float srcPercent, bool snap, Rect strength, int frequency, float dampingRatio)
+        public override Rect Calculate(TweenType mode, Rect start, Rect end, float percent, Rect srcValue, float srcPercent, bool snap, Rect strength, int frequency, float dampingRatio, int jumpCount, float jumpDamping)
         {
             Rect dest = Lerp(start, start, end, percent);
             dest = Lerp(start, srcValue, dest, srcPercent);
-            if (mode == TweenType.Shake)
+            if (mode == TweenType.Shake || mode == TweenType.Punch)
             {
-                var _strength = EvaluateStrength(frequency, dampingRatio, percent);
-                var _per = GetRandomPercent(percent);
-                strength.x = strength.x * _strength + Range(-strength.x, strength.x) * _per;
-                strength.y = strength.y * _strength + Range(-strength.y, strength.y) * _per;
-                strength.width = strength.width * _strength + Range(-strength.width, strength.width) * _per;
-                strength.height = strength.height * _strength + Range(-strength.height, strength.height) * _per;
-                dest.x += strength.x;
-                dest.y += strength.y;
-                dest.width += strength.width;
-                dest.height += strength.height;
+                Vector4 _strength = new Vector4(strength.x * end.x, strength.y * end.y, strength.width * strength.width, strength.height * end.height);
 
+                var s = EvaluateStrength(frequency, dampingRatio, percent) * _strength;
+                if (mode == TweenType.Punch)
+                {
+                    dest.x += s.x;
+                    dest.y += s.y;
+                    dest.width += s.z;
+                    dest.height += s.w;
+                }
+
+                else
+                {
+                    s *= percent;
+                    dest.x += s.x * Range1();
+                    dest.y += s.y * Range1();
+                    dest.width += s.z * Range1();
+                    dest.height += s.w * Range1();
+
+                }
+            }
+            else if (mode == TweenType.Jump)
+            {
+                int devCount;
+                float jumpAdd;
+                EvaluateJump(jumpCount, percent, out devCount, out jumpAdd);
+                Vector4 _s = new Vector4(strength.x, strength.y, strength.width, strength.height);
+                for (int i = 0; i < devCount; i++)
+                    _s /= jumpDamping;
+                _s *= jumpAdd;
+                dest.x += _s.x;
+                dest.y += _s.y;
+                dest.width += _s.z;
+                dest.height += _s.w;
             }
             if (snap)
             {
@@ -1447,16 +1618,35 @@ namespace IFramework
     }
     class ValueCalculator_Vector2 : ValueCalculator<Vector2>
     {
-
-        public override Vector2 Calculate(TweenType mode, Vector2 start, Vector2 end, float percent, Vector2 srcValue, float srcPercent, bool snap, Vector2 strength, int frequency, float dampingRatio)
+        public override Vector2 Calculate(TweenType mode, Vector2 start, Vector2 end, float percent, Vector2 srcValue, float srcPercent, bool snap, Vector2 strength, int frequency, float dampingRatio, int jumpCount, float jumpDamping)
         {
             Vector2 dest = Vector2.Lerp(start, end, percent);
             dest = Vector2.Lerp(srcValue, dest, srcPercent);
-            if (mode == TweenType.Shake)
+            if (mode == TweenType.Shake || mode == TweenType.Punch)
             {
-                strength = EvaluateStrength(frequency, dampingRatio, percent) * strength;
-                strength += new Vector2(Range(-strength.x, strength.x), Range(-strength.y, strength.y)) * GetRandomPercent(percent);
-                dest += strength;
+                strength = new Vector2(strength.x * end.x, strength.y * end.y);
+
+                var s = EvaluateStrength(frequency, dampingRatio, percent) * strength;
+                if (mode == TweenType.Punch)
+                    dest += s;
+
+                else
+                {
+                    s *= percent;
+                    dest.x += s.x * Range1();
+                    dest.y += s.y * Range1();
+
+                }
+            }
+            else if (mode == TweenType.Jump)
+            {
+                int devCount;
+                float jumpAdd;
+                EvaluateJump(jumpCount, percent, out devCount, out jumpAdd);
+                for (int i = 0; i < devCount; i++)
+                    strength /= jumpDamping;
+                dest += strength * jumpAdd;
+
             }
             if (snap)
             {
@@ -1471,16 +1661,41 @@ namespace IFramework
     class ValueCalculator_Vector3 : ValueCalculator<Vector3>
     {
 
-        public override Vector3 Calculate(TweenType mode, Vector3 start, Vector3 end, float percent, Vector3 srcValue, float srcPercent, bool snap, Vector3 strength, int frequency, float dampingRatio)
+
+
+        public override Vector3 Calculate(TweenType mode, Vector3 start, Vector3 end, float percent, Vector3 srcValue, float srcPercent, bool snap, Vector3 strength, int frequency, float dampingRatio, int jumpCount, float jumpDamping)
         {
             Vector3 dest = Vector3.Lerp(start, end, percent);
             dest = Vector3.Lerp(srcValue, dest, srcPercent);
-            if (mode == TweenType.Shake)
+            if (mode == TweenType.Shake || mode == TweenType.Punch)
             {
-                strength = EvaluateStrength(frequency, dampingRatio, percent) * strength;
-                strength += new Vector3(Range(-strength.x, strength.x), Range(-strength.y, strength.y), Range(-strength.z, strength.z)) * GetRandomPercent(percent);
-                dest += strength;
+                strength = new Vector3(strength.x * end.x, strength.y * end.y, strength.z * strength.z);
+
+                var s = EvaluateStrength(frequency, dampingRatio, percent) * strength;
+                if (mode == TweenType.Punch)
+                {
+                    dest += s;
+                }
+                else
+                {
+                    s *= percent;
+                    dest.x += s.x * Range1();
+                    dest.y += s.y * Range1();
+                    dest.z += s.z * Range1();
+
+                }
             }
+            else if (mode == TweenType.Jump)
+            {
+                int devCount;
+                float jumpAdd;
+                EvaluateJump(jumpCount, percent, out devCount, out jumpAdd);
+                for (int i = 0; i < devCount; i++)
+                    strength /= jumpDamping;
+                dest += strength * jumpAdd;
+
+            }
+
             if (snap)
             {
                 dest.x = Mathf.RoundToInt(dest.x);
@@ -1495,17 +1710,40 @@ namespace IFramework
     class ValueCalculator_Vector4 : ValueCalculator<Vector4>
     {
 
-        public override Vector4 Calculate(TweenType mode, Vector4 start, Vector4 end, float percent, Vector4 srcValue, float srcPercent, bool snap, Vector4 strength, int frequency, float dampingRatio)
+
+
+        public override Vector4 Calculate(TweenType mode, Vector4 start, Vector4 end, float percent, Vector4 srcValue, float srcPercent, bool snap, Vector4 strength, int frequency, float dampingRatio, int jumpCount, float jumpDamping)
         {
             Vector4 dest = Vector4.Lerp(start, end, percent);
             dest = Vector4.Lerp(srcValue, dest, srcPercent);
-            if (mode == TweenType.Shake)
+            if (mode == TweenType.Shake || mode == TweenType.Punch)
             {
-                strength = EvaluateStrength(frequency, dampingRatio, percent) * strength;
-                strength += new Vector4(Range(-strength.x, strength.x), Range(-strength.y, strength.y), Range(-strength.z, strength.z), Range(-strength.w, strength.w)) * GetRandomPercent(percent);
-                dest += strength;
-            }
+                strength = new Vector4(strength.x * end.x, strength.y * end.y, strength.z * strength.z, strength.z * end.z);
 
+                var s = EvaluateStrength(frequency, dampingRatio, percent) * strength;
+                if (mode == TweenType.Punch)
+                    dest += s;
+
+                else
+                {
+                    s *= percent;
+                    dest.x += s.x * Range1();
+                    dest.y += s.y * Range1();
+                    dest.z += s.z * Range1();
+                    dest.w += s.w * Range1();
+
+                }
+            }
+            else if (mode == TweenType.Jump)
+            {
+                int devCount;
+                float jumpAdd;
+                EvaluateJump(jumpCount, percent, out devCount, out jumpAdd);
+                for (int i = 0; i < devCount; i++)
+                    strength /= jumpDamping;
+                dest += strength * jumpAdd;
+
+            }
             if (snap)
             {
                 dest.x = Mathf.RoundToInt(dest.x);
