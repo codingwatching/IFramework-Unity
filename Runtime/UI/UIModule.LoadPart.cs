@@ -90,13 +90,13 @@ namespace IFramework.UI
                 {
                     if (_loading)
                     {
-                        module.HideRayCast();
+                        module.AcceptRayCast();
                         _loading = false;
                     }
                 }
                 else
                 {
-                    module.ShowRayCast();
+                    module.RefuseRayCast();
                     while (asyncLoadQueue.Count > 0 && asyncLoadQueue.Peek().isDone)
                     {
                         LoadPanelAsyncOperation op = asyncLoadQueue.Dequeue();
