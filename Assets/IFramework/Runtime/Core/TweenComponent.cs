@@ -25,6 +25,12 @@ namespace IFramework
         {
             if (target == null)
                 target = transform.GetComponent<TTarget>();
+
+            if (target == null)
+            {
+                Log.FE($"Can not GetComponent<{typeof(TTarget)}>() from {transform.name}");
+            }
+
             _percent = 0;
             var context = OnCreate();
             context.SetLoop(loopType, loops).SetDelay(delay).SetSnap(snap).SetDuration(duration);
@@ -78,7 +84,7 @@ namespace IFramework
 
         internal abstract void ResetPercent();
     }
-    class DoLocalScale : TweenComponentActor<Transform, Vector3>
+    class DoScale : TweenComponentActor<Transform, Vector3>
     {
         public Vector3 start = Vector3.one;
         public Vector3 end = Vector3.one;
@@ -149,7 +155,6 @@ namespace IFramework
 
         }
     }
-
     class DoShakeRotation : DoRotate
     {
         public Vector3 strength = Vector3.one;
@@ -169,7 +174,7 @@ namespace IFramework
 
         }
     }
-    class DoShakeScale : DoLocalScale
+    class DoShakeScale : DoScale
     {
         public Vector3 strength = Vector3.one;
         public int frequency = 10;
@@ -183,8 +188,109 @@ namespace IFramework
         }
     }
 
+    class DoPunchPosition : DoPosition
+    {
+        public Vector3 strength = Vector3.one;
+        public int frequency = 10;
+        public float dampingRatio = 1;
+        protected override ITweenContext<Vector3> OnCreate()
+        {
+            if (local)
+            {
+                if (startType == StartValueType.Relative)
+                    return Tween.DoPunchLocalPosition(target, end, duration, strength, frequency, dampingRatio, snap);
+                return Tween.DoPunchLocalPosition(target, start, end, duration, strength, frequency, dampingRatio, snap);
+            }
+            if (startType == StartValueType.Relative)
+                return Tween.DoPunchPosition(target, end, duration, strength, frequency, dampingRatio, snap);
+            return Tween.DoPunchPosition(target, start, end, duration, strength, frequency, dampingRatio, snap);
 
+        }
+    }
+    class DoPunchRotate : DoRotate
+    {
+        public Vector3 strength = Vector3.one;
+        public int frequency = 10;
+        public float dampingRatio = 1;
+        protected override ITweenContext<Vector3> OnCreate()
+        {
+            if (local)
+            {
+                if (startType == StartValueType.Relative)
+                    return Tween.DoPunchLocalRotate(target, end, duration, strength, frequency, dampingRatio, snap);
+                return Tween.DoPunchLocalRotate(target, start, end, duration, strength, frequency, dampingRatio, snap);
+            }
+            if (startType == StartValueType.Relative)
+                return Tween.DoPunchRotate(target, end, duration, strength, frequency, dampingRatio, snap);
+            return Tween.DoPunchRotate(target, start, end, duration, strength, frequency, dampingRatio, snap);
 
+        }
+    }
+    class DoPunchScale : DoScale
+    {
+        public Vector3 strength = Vector3.one;
+        public int frequency = 10;
+        public float dampingRatio = 1;
+        protected override ITweenContext<Vector3> OnCreate()
+        {
+            if (startType == StartValueType.Relative)
+                return Tween.DoPunchLocalScale(target, end, duration, strength, frequency, dampingRatio, snap);
+            return Tween.DoPunchLocalScale(target, start, end, duration, strength, frequency, dampingRatio, snap);
+
+        }
+    }
+
+    class DoJumpPosition : DoPosition
+    {
+        public Vector3 strength = Vector3.one;
+        public int jumpCount = 5;
+        public float jumpDamping = 2;
+        protected override ITweenContext<Vector3> OnCreate()
+        {
+            if (local)
+            {
+                if (startType == StartValueType.Relative)
+                    return Tween.DoJumpLocalPosition(target, end, duration, strength, jumpCount, jumpDamping, snap);
+                return Tween.DoJumpLocalPosition(target, start, end, duration, strength, jumpCount, jumpDamping, snap);
+            }
+            if (startType == StartValueType.Relative)
+                return Tween.DoJumpPosition(target, end, duration, strength, jumpCount, jumpDamping, snap);
+            return Tween.DoJumpPosition(target, start, end, duration, strength, jumpCount, jumpDamping, snap);
+
+        }
+    }
+    class DoJumpRotate : DoRotate
+    {
+        public Vector3 strength = Vector3.one;
+        public int jumpCount = 5;
+        public float jumpDamping = 2;
+        protected override ITweenContext<Vector3> OnCreate()
+        {
+            if (local)
+            {
+                if (startType == StartValueType.Relative)
+                    return Tween.DoJumpLocalRotate(target, end, duration, strength, jumpCount, jumpDamping, snap);
+                return Tween.DoJumpLocalRotate(target, start, end, duration, strength, jumpCount, jumpDamping, snap);
+            }
+            if (startType == StartValueType.Relative)
+                return Tween.DoJumpRotate(target, end, duration, strength, jumpCount, jumpDamping, snap);
+            return Tween.DoJumpRotate(target, start, end, duration, strength, jumpCount, jumpDamping, snap);
+
+        }
+    }
+    class DoJumpScale : DoScale
+    {
+        public Vector3 strength = Vector3.one;
+        public int jumpCount = 5;
+        public float jumpDamping = 2;
+        protected override ITweenContext<Vector3> OnCreate()
+        {
+            if (startType == StartValueType.Relative)
+                return Tween.DoJumpLocalScale(target, end, duration, strength, jumpCount, jumpDamping, snap);
+            return Tween.DoJumpLocalScale(target, start, end, duration, strength, jumpCount, jumpDamping, snap);
+
+        }
+    }
     partial class Tween
     {
         public static ITweenContext<Vector3> DoLocalScale(Transform target, Vector3 start, Vector3 end, float duration, bool snap = false)
@@ -235,6 +341,52 @@ namespace IFramework
             => Tween.DoShake(start, end, duration, () => target.localScale, (value) => target.localScale = value, strength, frequency, dampingRatio, snap);
         public static ITweenContext<Vector3> DoShakeLocalScale(Transform target, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
             => DoShakeLocalScale(target, target.localScale, end, duration, strength, frequency, dampingRatio, snap);
+
+
+
+        public static ITweenContext<Vector3> DoPunchRotate(Transform target, Vector3 start, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+=> Tween.DoPunch(start, end, duration, () => target.eulerAngles, (value) => target.eulerAngles = value, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoPunchRotate(Transform target, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+            => DoPunchRotate(target, target.eulerAngles, end, duration, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoPunchLocalRotate(Transform target, Vector3 start, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+            => Tween.DoPunch(start, end, duration, () => target.localEulerAngles, (value) => target.localEulerAngles = value, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoPunchLocalRotate(Transform target, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+            => DoPunchLocalRotate(target, target.localEulerAngles, end, duration, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoPunchLocalPosition(Transform target, Vector3 start, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+         => Tween.DoPunch(start, end, duration, () => target.localPosition, (value) => target.localPosition = value, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoPunchLocalPosition(Transform target, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+            => DoPunchLocalPosition(target, target.localPosition, end, duration, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoPunchPosition(Transform target, Vector3 start, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+     => Tween.DoPunch(start, end, duration, () => target.position, (value) => target.position = value, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoPunchPosition(Transform target, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+            => DoPunchPosition(target, target.position, end, duration, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoPunchLocalScale(Transform target, Vector3 start, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+            => Tween.DoPunch(start, end, duration, () => target.localScale, (value) => target.localScale = value, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoPunchLocalScale(Transform target, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+            => DoPunchLocalScale(target, target.localScale, end, duration, strength, frequency, dampingRatio, snap);
+
+
+
+        public static ITweenContext<Vector3> DoJumpRotate(Transform target, Vector3 start, Vector3 end, float duration, Vector3 strength, int jumpCount = 5, float jumpDamping = 2, bool snap = false)
+=> Tween.DoJump(start, end, duration, () => target.eulerAngles, (value) => target.eulerAngles = value, strength, jumpCount, jumpDamping, snap);
+        public static ITweenContext<Vector3> DoJumpRotate(Transform target, Vector3 end, float duration, Vector3 strength, int jumpCount = 5, float jumpDamping = 2, bool snap = false)
+            => DoJumpRotate(target, target.eulerAngles, end, duration, strength, jumpCount, jumpDamping, snap);
+        public static ITweenContext<Vector3> DoJumpLocalRotate(Transform target, Vector3 start, Vector3 end, float duration, Vector3 strength, int jumpCount = 5, float jumpDamping = 2, bool snap = false)
+            => Tween.DoJump(start, end, duration, () => target.localEulerAngles, (value) => target.localEulerAngles = value, strength, jumpCount, jumpDamping, snap);
+        public static ITweenContext<Vector3> DoJumpLocalRotate(Transform target, Vector3 end, float duration, Vector3 strength, int jumpCount = 5, float jumpDamping = 2, bool snap = false)
+            => DoJumpLocalRotate(target, target.localEulerAngles, end, duration, strength, jumpCount, jumpDamping, snap);
+        public static ITweenContext<Vector3> DoJumpLocalPosition(Transform target, Vector3 start, Vector3 end, float duration, Vector3 strength, int jumpCount = 5, float jumpDamping = 2, bool snap = false)
+         => Tween.DoJump(start, end, duration, () => target.localPosition, (value) => target.localPosition = value, strength, jumpCount, jumpDamping, snap);
+        public static ITweenContext<Vector3> DoJumpLocalPosition(Transform target, Vector3 end, float duration, Vector3 strength, int jumpCount = 5, float jumpDamping = 2, bool snap = false)
+            => DoJumpLocalPosition(target, target.localPosition, end, duration, strength, jumpCount, jumpDamping, snap);
+        public static ITweenContext<Vector3> DoJumpPosition(Transform target, Vector3 start, Vector3 end, float duration, Vector3 strength, int jumpCount = 5, float jumpDamping = 2, bool snap = false)
+     => Tween.DoJump(start, end, duration, () => target.position, (value) => target.position = value, strength, jumpCount, jumpDamping, snap);
+        public static ITweenContext<Vector3> DoJumpPosition(Transform target, Vector3 end, float duration, Vector3 strength, int jumpCount = 5, float jumpDamping = 2, bool snap = false)
+            => DoJumpPosition(target, target.position, end, duration, strength, jumpCount, jumpDamping, snap);
+        public static ITweenContext<Vector3> DoJumpLocalScale(Transform target, Vector3 start, Vector3 end, float duration, Vector3 strength, int jumpCount = 5, float jumpDamping = 2, bool snap = false)
+            => Tween.DoJump(start, end, duration, () => target.localScale, (value) => target.localScale = value, strength, jumpCount, jumpDamping, snap);
+        public static ITweenContext<Vector3> DoJumpLocalScale(Transform target, Vector3 end, float duration, Vector3 strength, int jumpCount = 5, float jumpDamping = 2, bool snap = false)
+            => DoJumpLocalScale(target, target.localScale, end, duration, strength, jumpCount, jumpDamping, snap);
     }
 
 
