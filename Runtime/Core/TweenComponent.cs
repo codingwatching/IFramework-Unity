@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 
 namespace IFramework
@@ -253,16 +254,20 @@ namespace IFramework
         [HideInInspector]
         internal List<TweenComponentActor> actors = new List<TweenComponentActor>();
 
-        public Action<ITweenContext> OnBegin { get; private set; }
-        public Action<ITweenContext> OnComplete { get; private set; }
-        public Action<ITweenContext, float, float> OnTick { get; private set; }
-        public Action<ITweenContext> OnCancel { get; private set; }
+        [System.Serializable]
+        public class TweenComponentEvent : UnityEvent<ITweenContext> { }
+        [System.Serializable]
+        public class TweenComponentTickEvent : UnityEvent<ITweenContext, float, float> { }
+
+        [HideInInspector] public TweenComponentEvent onCancel = new TweenComponentEvent();
+        [HideInInspector] public TweenComponentEvent onBegin = new TweenComponentEvent();
+        [HideInInspector] public TweenComponentEvent onComplete = new TweenComponentEvent();
+        [HideInInspector] public TweenComponentTickEvent onTick = new TweenComponentTickEvent();
+
+
         internal bool hasValue => context != null;
-
         public bool paused => !hasValue ? true : context.paused;
-
         private ITweenContext context;
-
         private void ResetActorsPercent()
         {
 #if UNITY_EDITOR
@@ -315,19 +320,16 @@ namespace IFramework
                 }
                 group.SetAutoCycle(false)
                      .SetTimeScale(timeScale)
-                     .OnBegin(OnBegin)
-                     .OnComplete(OnComplete)
-                     .OnTick(OnTick)
-                     .OnCancel(OnCancel).Run();
+                     .OnBegin(onBegin.Invoke)
+                     .OnComplete(onComplete.Invoke)
+                     .OnTick(onTick.Invoke)
+                     .OnCancel(onCancel.Invoke).Run();
             }
             else
             {
                 ReStart();
             }
         }
-
-
-
         public void UnPause() => context?.UnPause();
         public void Pause() => context?.Pause();
         public void ReStart()
