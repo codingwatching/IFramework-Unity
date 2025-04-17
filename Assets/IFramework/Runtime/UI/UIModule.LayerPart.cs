@@ -8,6 +8,8 @@
 *********************************************************************************/
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace IFramework.UI
 {
@@ -38,6 +40,7 @@ namespace IFramework.UI
             private Dictionary<string, RuntimeUILayerData> _layers;
             private UIModule module;
             private Empty4Raycast raycast;
+            private BaseRaycaster raycast_unity;
             private bool _force_show_raycast;
             private List<string> layerNames;
             public LayerPart(UIModule module)
@@ -69,36 +72,51 @@ namespace IFramework.UI
 
                 return data;
             }
-            public void CreateLayers(Transform parent)
+            public void CreateLayers(Canvas canvas)
             {
                 layerNames = module.GetLayerNames();
                 foreach (var item in layerNames)
-                    CreateLayer(item, parent);
+                    CreateLayer(item, canvas.transform);
+                raycast_unity = canvas.GetComponent<BaseRaycaster>();
+
                 //CreateLayer(UILayerData.item_layer, parent);
                 //SwitchLayerVisible(UILayerData.item_layer, false);
-                var ray = CreateLayer(UILayerData.rayCast_layer, parent);
-                raycast = ray.rect.gameObject.AddComponent<Empty4Raycast>();
-                HideRayCast();
+                if (raycast_unity == null)
+                {
+                    var ray = CreateLayer(UILayerData.rayCast_layer, canvas.transform);
+                    raycast = ray.rect.gameObject.AddComponent<Empty4Raycast>();
+                }
+                AcceptRayCast();
             }
 
             public RuntimeUILayerData GetRTLayerData(string layer) => _layers[layer];
 
 
-            public void ShowRayCast() => raycast.raycastTarget = true;
-            public void HideRayCast()
+            public void RefuseRayCast()
+            {
+                if (raycast_unity == null)
+                    raycast.raycastTarget = true;
+                else
+                    raycast_unity.enabled = false;
+            }
+
+            public void AcceptRayCast()
             {
                 if (_force_show_raycast) return;
-                raycast.raycastTarget = false;
+                if (raycast_unity == null)
+                    raycast.raycastTarget = false;
+                else
+                    raycast_unity.enabled = true;
             }
-            public void ForceShowRayCast()
+            public void ForceRefuseRayCast()
             {
                 _force_show_raycast = true;
-                ShowRayCast();
+                RefuseRayCast();
             }
-            public void ForceHideRayCast()
+            public void ForceAcceptRayCast()
             {
                 _force_show_raycast = false;
-                HideRayCast();
+                AcceptRayCast();
             }
             public void Clear()
             {

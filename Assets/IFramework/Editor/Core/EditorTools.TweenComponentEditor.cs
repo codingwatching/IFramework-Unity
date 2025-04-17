@@ -27,6 +27,7 @@ namespace IFramework
                 comp = target as TweenComponent;
 
             }
+
             private void Tools()
             {
                 GUILayout.BeginHorizontal();
@@ -63,10 +64,11 @@ namespace IFramework
             {
                 GUI.enabled = !EditorApplication.isPlaying;
                 base.OnInspectorGUI();
+
                 if (EditorGUILayout.DropdownButton(new GUIContent("Actors", EditorGUIUtility.TrIconContent("d_Toolbar Plus").image),
                     FocusType.Passive, new GUIStyle(EditorStyles.miniPullDown)
                     {
-                        fixedHeight = 25
+                        fixedHeight = 30
                     }))
                 {
                     var types = typeof(TweenComponentActor).GetSubTypesInAssemblies()
@@ -109,10 +111,31 @@ namespace IFramework
                 for (int i = 0; i < comp.actors.Count; i++)
                 {
                     var actor = comp.actors[i];
-                    bool remove = DrawActor(actor);
-                    if (remove)
+                    var mode = DrawActor(actor, i);
+                    switch (mode)
                     {
-                        comp.actors.RemoveAt(i);
+                        case Mode.Remove:
+                            comp.actors.RemoveAt(i);
+                            break;
+                        case Mode.MoveDown:
+                            {
+                                if (i != comp.actors.Count - 1)
+                                {
+                                    comp.actors[i] = comp.actors[i + 1];
+                                    comp.actors[i + 1] = actor;
+                                }
+                            }
+                            break;
+                        case Mode.MoveUp:
+                            {
+                                if (i != 0)
+                                {
+                                    comp.actors[i] = comp.actors[i - 1];
+                                    comp.actors[i - 1] = actor;
+                                }
+                            }
+                            break;
+
                     }
                 }
                 if (EditorGUI.EndChangeCheck())
@@ -125,21 +148,43 @@ namespace IFramework
                 Tools();
             }
 
-            private bool DrawActor(TweenComponentActor actor)
+            private enum Mode
             {
-                EditorGUILayout.LabelField("", EditorStyles.toolbarPopup, GUILayout.Height(25));
+                Remove, MoveDown, MoveUp, None
+            }
+            private Mode DrawActor(TweenComponentActor actor, int index)
+            {
+                Mode mode = Mode.None;
+                EditorGUILayout.LabelField("", GUI.skin.textField, GUILayout.Height(25));
                 var rect = EditorTools.RectEx.Zoom(GUILayoutUtility.GetLastRect(),
-                    TextAnchor.MiddleRight, new Vector2(-20, -4));
-                var rs = EditorTools.RectEx.VerticalSplit(rect, rect.width - 20);
+                    TextAnchor.MiddleRight, new Vector2(-20, 0));
+                var rs = EditorTools.RectEx.VerticalSplit(rect, rect.width - 80, 4);
                 EditorGUI.ProgressBar(rs[0], actor.percent, "");
                 var fold = EditorGUI.Foldout(rs[0], GetFoldout(actor), $"{actor.GetType().Name}", true);
                 SetFoldout(actor, fold);
-                bool remove = GUI.Button(rs[1], EditorGUIUtility.TrIconContent("d_Toolbar Minus"));
+
+
+                var rss = RectEx.VerticalSplit(rs[1], rect.height, 0);
+                if (GUI.Button(rss[0], EditorGUIUtility.TrIconContent("d_Toolbar Minus")))
+                    mode = Mode.Remove;
+                rss = RectEx.VerticalSplit(rss[1], rect.height, 0);
+                GUI.enabled = index != 0;
+                if (GUI.Button(rss[0], EditorGUIUtility.TrIconContent("d_scrollup")))
+                    mode = Mode.MoveUp;
+                rss = RectEx.VerticalSplit(rss[1], rect.height, 0);
+                GUI.enabled = index != comp.actors.Count - 1;
+                if (GUI.Button(rss[0], EditorGUIUtility.TrIconContent("d_scrolldown")))
+                    mode = Mode.MoveDown;
+
+
+
+
+                GUI.enabled = true;
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(20);
                 GUILayout.BeginVertical();
-                if (!remove && fold)
+                if (mode == Mode.None && fold)
                 {
 
                     GUILayout.BeginVertical(EditorStyles.helpBox);
@@ -172,18 +217,41 @@ namespace IFramework
                     }
                     GUILayout.EndVertical();
                     GUILayout.Space(5);
-                    var fields = actor.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
-                    GUILayout.BeginVertical(EditorStyles.helpBox);
-                    actor.startType = (StartValueType)EditorGUILayout.EnumPopup(nameof(StartValueType), actor.startType);
-                    for (int i = 0; i < fields.Length; i++)
+
+                    List<Type> types = new List<Type>();
+
+
+                    var _baseType = actor.GetType();
+                    while (true)
                     {
-                        FieldDefaultInspector(fields[i], actor);
+                        if (_baseType.IsGenericType && _baseType.GetGenericTypeDefinition() == typeof(TweenComponentActor<,>))
+                        {
+                            break;
+                        }
+                        types.Insert(0, _baseType);
+                        _baseType = _baseType.BaseType;
+                    }
+
+
+                    GUILayout.BeginVertical(EditorStyles.helpBox);
+
+
+
+                    actor.startType = (StartValueType)EditorGUILayout.EnumPopup(nameof(StartValueType), actor.startType);
+
+                    foreach (var type in types)
+                    {
+                        var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
+                        for (int i = 0; i < fields.Length; i++)
+                        {
+                            FieldDefaultInspector(fields[i], actor);
+                        }
                     }
                     GUILayout.EndVertical();
                 }
                 GUILayout.EndVertical();
                 GUILayout.EndHorizontal();
-                return remove;
+                return mode;
             }
 
 

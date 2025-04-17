@@ -79,28 +79,161 @@ namespace IFramework
     }
     class DoLocalScale : TweenComponentActor<Transform, Vector3>
     {
-        public Vector3 start;
-        public Vector3 end;
+        public Vector3 start = Vector3.one;
+        public Vector3 end = Vector3.one;
         protected override ITweenContext<Vector3> OnCreate()
         {
-            var _start = startType == StartValueType.Relative ? target.localScale : start;
-
-            return Tween.DoGoto(_start, end, duration, () => target.localScale,
-                (value) => target.localScale = value, snap);
-
+            if (startType == StartValueType.Relative)
+                return Tween.DoLocalScale(target, end, duration, snap);
+            return Tween.DoLocalScale(target, start, end, duration, snap);
         }
     }
     class DoPosition : TweenComponentActor<Transform, Vector3>
     {
-        public Vector3 start;
-        public Vector3 end;
+        public bool local;
+        public Vector3 start = Vector3.zero;
+        public Vector3 end = Vector3.one;
         protected override ITweenContext<Vector3> OnCreate()
         {
-            var _start = startType == StartValueType.Relative ? target.position : start;
-            return Tween.DoGoto(_start, end, duration, () => target.position,
-                (value) => target.position = value, snap);
+            if (local)
+            {
+                if (startType == StartValueType.Relative)
+                    return Tween.DoLocalPosition(target, end, duration, snap);
+                return Tween.DoLocalPosition(target, start, end, duration, snap);
+            }
+            if (startType == StartValueType.Relative)
+                return Tween.DoPosition(target, end, duration, snap);
+            return Tween.DoPosition(target, start, end, duration, snap);
 
         }
+    }
+    class DoRotate : TweenComponentActor<Transform, Vector3>
+    {
+        public bool local;
+        public Vector3 start = Vector3.zero;
+        public Vector3 end = Vector3.one;
+
+        protected override ITweenContext<Vector3> OnCreate()
+        {
+            if (local)
+            {
+                if (startType == StartValueType.Relative)
+                    return Tween.DoLocalRotate(target, end, duration, snap);
+                return Tween.DoLocalRotate(target, start, end, duration, snap);
+            }
+            if (startType == StartValueType.Relative)
+                return Tween.DoRotate(target, end, duration, snap);
+            return Tween.DoRotate(target, start, end, duration, snap);
+
+        }
+    }
+
+
+    class DoShakePosition : DoPosition
+    {
+        public Vector3 strength = Vector3.one;
+        public int frequency = 10;
+        public float dampingRatio = 1;
+        protected override ITweenContext<Vector3> OnCreate()
+        {
+            if (local)
+            {
+                if (startType == StartValueType.Relative)
+                    return Tween.DoShakeLocalPosition(target, end, duration, strength, frequency, dampingRatio, snap);
+                return Tween.DoShakeLocalPosition(target, start, end, duration, strength, frequency, dampingRatio, snap);
+            }
+            if (startType == StartValueType.Relative)
+                return Tween.DoShakePosition(target, end, duration, strength, frequency, dampingRatio, snap);
+            return Tween.DoShakePosition(target, start, end, duration, strength, frequency, dampingRatio, snap);
+
+        }
+    }
+
+    class DoShakeRotation : DoRotate
+    {
+        public Vector3 strength = Vector3.one;
+        public int frequency = 10;
+        public float dampingRatio = 1;
+        protected override ITweenContext<Vector3> OnCreate()
+        {
+            if (local)
+            {
+                if (startType == StartValueType.Relative)
+                    return Tween.DoShakeLocalRotate(target, end, duration, strength, frequency, dampingRatio, snap);
+                return Tween.DoShakeLocalRotate(target, start, end, duration, strength, frequency, dampingRatio, snap);
+            }
+            if (startType == StartValueType.Relative)
+                return Tween.DoShakeRotate(target, end, duration, strength, frequency, dampingRatio, snap);
+            return Tween.DoShakeRotate(target, start, end, duration, strength, frequency, dampingRatio, snap);
+
+        }
+    }
+    class DoShakeScale : DoLocalScale
+    {
+        public Vector3 strength = Vector3.one;
+        public int frequency = 10;
+        public float dampingRatio = 1;
+        protected override ITweenContext<Vector3> OnCreate()
+        {
+            if (startType == StartValueType.Relative)
+                return Tween.DoShakeLocalScale(target, end, duration, strength, frequency, dampingRatio, snap);
+            return Tween.DoShakeLocalScale(target, start, end, duration, strength, frequency, dampingRatio, snap);
+
+        }
+    }
+
+
+
+    partial class Tween
+    {
+        public static ITweenContext<Vector3> DoLocalScale(Transform target, Vector3 start, Vector3 end, float duration, bool snap = false)
+            => Tween.DoGoto(start, end, duration, () => target.localScale, (value) => target.localScale = value, snap);
+        public static ITweenContext<Vector3> DoLocalScale(Transform target, Vector3 end, float duration, bool snap = false)
+            => DoLocalScale(target, target.localScale, end, duration, snap);
+        public static ITweenContext<Vector3> DoPosition(Transform target, Vector3 start, Vector3 end, float duration, bool snap = false)
+           => Tween.DoGoto(start, end, duration, () => target.position, (value) => target.position = value, snap);
+        public static ITweenContext<Vector3> DoPosition(Transform target, Vector3 end, float duration, bool snap = false)
+            => DoPosition(target, target.position, end, duration, snap);
+        public static ITweenContext<Vector3> DoLocalPosition(Transform target, Vector3 start, Vector3 end, float duration, bool snap = false)
+          => Tween.DoGoto(start, end, duration, () => target.localPosition, (value) => target.localPosition = value, snap);
+        public static ITweenContext<Vector3> DoLocalPosition(Transform target, Vector3 end, float duration, bool snap = false)
+            => DoLocalPosition(target, target.localPosition, end, duration, snap);
+
+
+        public static ITweenContext<Vector3> DoRotate(Transform target, Vector3 start, Vector3 end, float duration, bool snap = false)
+            => Tween.DoGoto(start, end, duration, () => target.eulerAngles, (value) => target.eulerAngles = value, snap);
+        public static ITweenContext<Vector3> DoRotate(Transform target, Vector3 end, float duration, bool snap = false)
+            => DoRotate(target, target.eulerAngles, end, duration, snap);
+
+
+        public static ITweenContext<Vector3> DoLocalRotate(Transform target, Vector3 start, Vector3 end, float duration, bool snap = false)
+            => Tween.DoGoto(start, end, duration, () => target.localEulerAngles, (value) => target.localEulerAngles = value, snap);
+        public static ITweenContext<Vector3> DoLocalRotate(Transform target, Vector3 end, float duration, bool snap = false)
+            => DoLocalRotate(target, target.localEulerAngles, end, duration, snap);
+
+
+
+
+        public static ITweenContext<Vector3> DoShakeRotate(Transform target, Vector3 start, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+     => Tween.DoShake(start, end, duration, () => target.eulerAngles, (value) => target.eulerAngles = value, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoShakeRotate(Transform target, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+            => DoShakeRotate(target, target.eulerAngles, end, duration, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoShakeLocalRotate(Transform target, Vector3 start, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+            => Tween.DoShake(start, end, duration, () => target.localEulerAngles, (value) => target.localEulerAngles = value, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoShakeLocalRotate(Transform target, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+            => DoShakeLocalRotate(target, target.localEulerAngles, end, duration, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoShakeLocalPosition(Transform target, Vector3 start, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+         => Tween.DoShake(start, end, duration, () => target.localPosition, (value) => target.localPosition = value, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoShakeLocalPosition(Transform target, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+            => DoShakeLocalPosition(target, target.localPosition, end, duration, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoShakePosition(Transform target, Vector3 start, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+     => Tween.DoShake(start, end, duration, () => target.position, (value) => target.position = value, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoShakePosition(Transform target, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+            => DoShakePosition(target, target.position, end, duration, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoShakeLocalScale(Transform target, Vector3 start, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+            => Tween.DoShake(start, end, duration, () => target.localScale, (value) => target.localScale = value, strength, frequency, dampingRatio, snap);
+        public static ITweenContext<Vector3> DoShakeLocalScale(Transform target, Vector3 end, float duration, Vector3 strength, int frequency = 10, float dampingRatio = 1, bool snap = false)
+            => DoShakeLocalScale(target, target.localScale, end, duration, strength, frequency, dampingRatio, snap);
     }
 
 
@@ -215,7 +348,7 @@ namespace IFramework
             RecyleContext();
         }
 
-  
+
     }
 
 }

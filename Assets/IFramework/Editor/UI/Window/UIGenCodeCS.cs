@@ -25,7 +25,7 @@ namespace IFramework.UI
         }
 
 
-        private UIGenCodeCS_PUB pubsave;
+        private UIGenCodeCS_PUB pubsave = new UIGenCodeCS_PUB();
 
 
         public override string name => "CS";
@@ -70,12 +70,12 @@ namespace IFramework.UI
             var last = _last as UIGenCodeCS;
             this._type = last._type;
             pubsave = EditorTools.GetFromPrefs(typeof(UIGenCodeCS_PUB), name, false) as UIGenCodeCS_PUB;
-            if (pubsave == null) pubsave = new UIGenCodeCS_PUB();
+            //if (pubsave == null) pubsave = new UIGenCodeCS_PUB();
         }
         public override void OnDisable()
         {
             base.OnDisable();
-            if (pubsave == null) return;
+            //if (pubsave == null) return;
             EditorTools.SaveToPrefs(pubsave, name, false);
         }
 
@@ -151,7 +151,7 @@ namespace IFramework.UI
         protected override string GetNameSpace()
         {
             var ns = base.GetNameSpace();
-            if (pubsave == null || string.IsNullOrEmpty(pubsave.NameSpace))
+            if (string.IsNullOrEmpty(pubsave.NameSpace))
                 return ns;
             return $"{ns}.{pubsave.NameSpace}";
         }

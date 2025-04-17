@@ -10,7 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-
+using Random = UnityEngine.Random;
 
 namespace IFramework
 {
@@ -594,6 +594,10 @@ namespace IFramework
             TryRecycle();
         }
     }
+    public enum TweenType
+    {
+        Normal, Shake
+    }
     class TweenContext<T> : TweenContext, ITweenContext<T>
     {
 
@@ -616,7 +620,7 @@ namespace IFramework
         private int _loop;
 
 
-
+        private TweenType _mode;
 
         private static ValueCalculator<T> calc
         {
@@ -648,6 +652,10 @@ namespace IFramework
         }
 
         private bool _set2Start_called = false;
+        private int frequency;
+        private float dampingRatio;
+        private T strength;
+
         private bool LoopLogic(float time, float delta)
         {
             var targetTime = this.time + delta * timeScale;
@@ -694,10 +702,14 @@ namespace IFramework
 
 
             var src = getter.Invoke();
-            T _cur = calc.Calculate(_start, _end, _convertPercent, src, _deltaPercent, snap);
+            T _cur = calc.Calculate(_mode, _start, _end, _convertPercent, src, _deltaPercent, snap, strength, frequency, dampingRatio);
             if (!src.Equals(_cur))
                 setter?.Invoke(_cur);
         }
+
+
+
+
         private void OnLoopEnd()
         {
             if (loopType == LoopType.PingPong)
@@ -717,12 +729,24 @@ namespace IFramework
 
         public TweenContext<T> Config(T start, T end, float duration, Func<T> getter, Action<T> setter, bool snap)
         {
+            _mode = TweenType.Normal;
             this._start = this.start = start;
             this._end = this.end = end;
             this.duration = duration;
             this.getter = getter;
             this.setter = setter;
             this.snap = snap;
+            return this;
+        }
+        public TweenContext<T> ShakeConfig(T start, T end, float duration, Func<T> getter, Action<T> setter, bool snap, T strength,
+            int frequency, float dampingRatio)
+        {
+            this.Config(start, end, duration, getter, setter, snap);
+            _mode = TweenType.Shake;
+            this.frequency = frequency;
+            this.dampingRatio = dampingRatio;
+            this.strength = strength;
+
             return this;
         }
         public void SetSourceDelta(float delta) => sourceDelta = delta;
@@ -767,7 +791,6 @@ namespace IFramework
             this.duration = duration;
         }
     }
-
 
 
 
@@ -898,7 +921,7 @@ namespace IFramework
 
 
 
-    public static class Tween
+    public static partial class Tween
     {
 #if UNITY_EDITOR
         private static TweenScheduler editorScheduler;
@@ -933,18 +956,12 @@ namespace IFramework
         static Dictionary<Type, object> value_calcs = new Dictionary<Type, object>()
         {
             { typeof(float), new ValueCalculator_Float() },
-            { typeof(bool), new ValueCalculator_Bool() },
             { typeof(int), new ValueCalculator_Int() },
             { typeof(Vector2), new ValueCalculator_Vector2() },
             { typeof(Vector3), new ValueCalculator_Vector3() },
             { typeof(Vector4), new ValueCalculator_Vector4() },
             { typeof(Color), new ValueCalculator_Color() },
-            { typeof(Quaternion), new ValueCalculator_Quaternion() },
             { typeof(Rect), new ValueCalculator_Rect() },
-            { typeof(long), new ValueCalculator_Long() },
-            { typeof(short), new ValueCalculator_Short() },
-            { typeof(Vector3Int), new ValueCalculator_Vector3Int() },
-            { typeof(Vector2Int), new ValueCalculator_Vector2Int() },
         };
         public static List<Type> GetSupportTypes() => value_calcs.Keys.ToList();
         internal static ValueCalculator<T> GetValueCalculator<T>()
@@ -969,8 +986,21 @@ namespace IFramework
             context.AsInstance().Config(start, end, duration, getter, setter, snap);
             return context;
         }
-        public static ITweenContext<T> DoGoto<T>(T end, float duration, Func<T> getter, Action<T> setter, bool snap, bool autoRun = true) => DoGoto(getter.Invoke(), end, duration, getter, setter, snap, autoRun);
+        public static ITweenContext<T> DoGoto<T>(T end, float duration, Func<T> getter, Action<T> setter, bool snap, bool autoRun = true)
+            => DoGoto(getter.Invoke(), end, duration, getter, setter, snap, autoRun);
 
+        public static ITweenContext<T> DoShake<T>(T start, T end, float duration, Func<T> getter, Action<T> setter, T strength,
+            int frequency = 10, float dampingRatio = 1, bool snap = false, bool autoRun = true)
+        {
+            var context = GetScheduler().AllocateContext<T>(autoRun);
+            context.AsInstance().ShakeConfig(start, end, duration, getter, setter, snap, strength, frequency, dampingRatio);
+            return context;
+        }
+        public static ITweenContext<T> DoShake<T>(T end, float duration, Func<T> getter, Action<T> setter, T strength,
+          int frequency = 10, float dampingRatio = 1, bool snap = false, bool autoRun = true)
+        {
+            return DoShake<T>(getter.Invoke(), end, duration, getter, setter, strength, frequency, dampingRatio, snap, autoRun);
+        }
 
 
         public static ITweenGroup Sequence() => GetScheduler().AllocateSequence();
@@ -1001,6 +1031,8 @@ namespace IFramework
             }
             return context;
         }
+
+
         private static TweenContextBase AsContextBase(this ITweenContext t) => t as TweenContextBase;
         public static void Cancel<T>(this T context) where T : ITweenContext => context.Complete(false);
         public static T Pause<T>(this T t) where T : ITweenContext
@@ -1267,78 +1299,85 @@ namespace IFramework
 
     abstract class ValueCalculator<T>
     {
-        public abstract T Calculate(T start, T end, float percent, T srcValue, float srcPercent, bool snap);
-
+        public const float E = 2.71828175F;
+        public const float PI = 3.14159274F;
+        protected static float EvaluateStrength(int frequency, float dampingRatio, float t)
+        {
+            if (t == 1f || t == 0f)
+            {
+                return 0;
+            }
+            float angularFrequency = (frequency - 0.5f) * PI;
+            float dampingFactor = dampingRatio * frequency / (2f * PI);
+            return Mathf.Cos(angularFrequency * t) * Mathf.Pow(E, -dampingFactor * t);
+        }
+        public abstract T Calculate(TweenType mode, T start, T end, float percent, T srcValue,
+            float srcPercent, bool snap, T strength, int frequency, float dampingRatio);
         public abstract T CalculatorEnd(T start, T end);
+        protected static float Range(float min, float max) => Random.Range(min, max);
+        protected static float GetRandomPercent(float percent) => 0.5f - Mathf.Abs(0.5f - percent);
     }
     class ValueCalculator_Float : ValueCalculator<float>
     {
-        public override float Calculate(float start, float end, float percent, float srcValue, float srcPercent, bool snap)
+        public override float Calculate(TweenType mode, float start, float end, float percent, float srcValue, float srcPercent, bool snap, float strength, int frequency, float dampingRatio)
         {
             float dest = Mathf.Lerp(start, end, percent);
             dest = Mathf.Lerp(srcValue, dest, srcPercent);
+            if (mode == TweenType.Shake)
+            {
+                strength = EvaluateStrength(frequency, dampingRatio, percent) * strength;
+                strength += Range(-strength, strength) * GetRandomPercent(percent);
+                dest += strength;
+            }
             if (snap)
                 return Mathf.RoundToInt(dest);
             return dest;
         }
 
         public override float CalculatorEnd(float start, float end) => end + end - start;
+
+
     }
     class ValueCalculator_Int : ValueCalculator<int>
     {
-        public override int Calculate(int start, int end, float percent, int srcValue, float srcPercent, bool snap)
+        public override int Calculate(TweenType mode, int start, int end, float percent, int srcValue, float srcPercent, bool snap, int strength, int frequency, float dampingRatio)
         {
             float dest = Mathf.Lerp(start, end, percent);
             dest = Mathf.Lerp(srcValue, dest, srcPercent);
+            if (mode == TweenType.Shake)
+            {
+                strength = (int)EvaluateStrength(frequency, dampingRatio, percent) * strength;
+                strength += (int)(Range(-strength, strength) * GetRandomPercent(percent));
+                dest += strength;
+            }
             return Mathf.RoundToInt(dest);
         }
 
         public override int CalculatorEnd(int start, int end) => end + end - start;
     }
-    class ValueCalculator_Long : ValueCalculator<long>
-    {
-        public override long Calculate(long start, long end, float percent, long srcValue, float srcPercent, bool snap)
-        {
-            float dest = Mathf.Lerp(start, end, percent);
-            dest = Mathf.Lerp(srcValue, dest, srcPercent);
-            return Mathf.RoundToInt(dest);
-        }
-
-        public override long CalculatorEnd(long start, long end) => end + end - start;
-    }
-    class ValueCalculator_Short : ValueCalculator<short>
-    {
-        public override short Calculate(short start, short end, float percent, short srcValue, float srcPercent, bool snap)
-        {
-            float dest = Mathf.Lerp(start, end, percent);
-            dest = Mathf.Lerp(srcValue, dest, srcPercent);
-            return (short)Mathf.RoundToInt(dest);
-        }
-
-        public override short CalculatorEnd(short start, short end) => (short)(end + end - start);
-    }
 
 
 
-    class ValueCalculator_Bool : ValueCalculator<bool>
-    {
-        public override bool Calculate(bool start, bool end, float percent, bool srcValue, float srcPercent, bool snap)
-        {
-            return percent >= 1 ? end : start;
-        }
-
-        public override bool CalculatorEnd(bool start, bool end)
-        {
-            Log.FE($"type:{typeof(bool)} not support {nameof(LoopType)}.{nameof(LoopType.Add)}");
-            return start || end;
-        }
-    }
     class ValueCalculator_Color : ValueCalculator<Color>
     {
-        public override Color Calculate(Color start, Color end, float percent, Color srcValue, float srcPercent, bool snap)
+
+        public override Color Calculate(TweenType mode, Color start, Color end, float percent, Color srcValue, float srcPercent, bool snap, Color strength, int frequency, float dampingRatio)
         {
             Color dest = Color.Lerp(start, end, percent);
             dest = Color.Lerp(srcValue, dest, srcPercent);
+
+            if (mode == TweenType.Shake)
+            {
+                strength = EvaluateStrength(frequency, dampingRatio, percent) * strength;
+
+                var _per = GetRandomPercent(percent);
+                strength += new Color(Range(-strength.r, strength.r),
+                   Range(-strength.g, strength.g),
+                   Range(-strength.b, strength.b),
+                   Range(-strength.a, strength.a)) * _per;
+                dest += strength;
+            }
+
             if (snap)
             {
                 dest.a = Mathf.RoundToInt(dest.a);
@@ -1352,30 +1391,7 @@ namespace IFramework
 
         public override Color CalculatorEnd(Color start, Color end) => end + end - start;
     }
-    class ValueCalculator_Quaternion : ValueCalculator<Quaternion>
-    {
-        public override Quaternion Calculate(Quaternion start, Quaternion end, float percent, Quaternion srcValue, float srcPercent, bool snap)
-        {
-            Quaternion dest = Quaternion.Lerp(start, end, percent);
-            dest = Quaternion.Lerp(srcValue, dest, srcPercent);
-            if (snap)
-            {
-                dest.x = Mathf.RoundToInt(dest.x);
-                dest.y = Mathf.RoundToInt(dest.y);
-                dest.z = Mathf.RoundToInt(dest.z);
-                dest.z = Mathf.RoundToInt(dest.z);
-            }
 
-            return dest;
-        }
-
-        public override Quaternion CalculatorEnd(Quaternion start, Quaternion end)
-        {
-            var _start = start.eulerAngles;
-            var _end = end.eulerAngles;
-            return Quaternion.Euler(_end + _end - _start);
-        }
-    }
     class ValueCalculator_Rect : ValueCalculator<Rect>
     {
         private static Rect Lerp(Rect r, Rect a, Rect b, float t)
@@ -1386,10 +1402,26 @@ namespace IFramework
             r.height = Mathf.Lerp(a.height, b.height, t);
             return r;
         }
-        public override Rect Calculate(Rect start, Rect end, float percent, Rect srcValue, float srcPercent, bool snap)
+
+
+        public override Rect Calculate(TweenType mode, Rect start, Rect end, float percent, Rect srcValue, float srcPercent, bool snap, Rect strength, int frequency, float dampingRatio)
         {
             Rect dest = Lerp(start, start, end, percent);
             dest = Lerp(start, srcValue, dest, srcPercent);
+            if (mode == TweenType.Shake)
+            {
+                var _strength = EvaluateStrength(frequency, dampingRatio, percent);
+                var _per = GetRandomPercent(percent);
+                strength.x = strength.x * _strength + Range(-strength.x, strength.x) * _per;
+                strength.y = strength.y * _strength + Range(-strength.y, strength.y) * _per;
+                strength.width = strength.width * _strength + Range(-strength.width, strength.width) * _per;
+                strength.height = strength.height * _strength + Range(-strength.height, strength.height) * _per;
+                dest.x += strength.x;
+                dest.y += strength.y;
+                dest.width += strength.width;
+                dest.height += strength.height;
+
+            }
             if (snap)
             {
                 dest.x = Mathf.RoundToInt(dest.x);
@@ -1415,10 +1447,17 @@ namespace IFramework
     }
     class ValueCalculator_Vector2 : ValueCalculator<Vector2>
     {
-        public override Vector2 Calculate(Vector2 start, Vector2 end, float percent, Vector2 srcValue, float srcPercent, bool snap)
+
+        public override Vector2 Calculate(TweenType mode, Vector2 start, Vector2 end, float percent, Vector2 srcValue, float srcPercent, bool snap, Vector2 strength, int frequency, float dampingRatio)
         {
             Vector2 dest = Vector2.Lerp(start, end, percent);
             dest = Vector2.Lerp(srcValue, dest, srcPercent);
+            if (mode == TweenType.Shake)
+            {
+                strength = EvaluateStrength(frequency, dampingRatio, percent) * strength;
+                strength += new Vector2(Range(-strength.x, strength.x), Range(-strength.y, strength.y)) * GetRandomPercent(percent);
+                dest += strength;
+            }
             if (snap)
             {
                 dest.x = Mathf.RoundToInt(dest.x);
@@ -1431,10 +1470,17 @@ namespace IFramework
     }
     class ValueCalculator_Vector3 : ValueCalculator<Vector3>
     {
-        public override Vector3 Calculate(Vector3 start, Vector3 end, float percent, Vector3 srcValue, float srcPercent, bool snap)
+
+        public override Vector3 Calculate(TweenType mode, Vector3 start, Vector3 end, float percent, Vector3 srcValue, float srcPercent, bool snap, Vector3 strength, int frequency, float dampingRatio)
         {
             Vector3 dest = Vector3.Lerp(start, end, percent);
             dest = Vector3.Lerp(srcValue, dest, srcPercent);
+            if (mode == TweenType.Shake)
+            {
+                strength = EvaluateStrength(frequency, dampingRatio, percent) * strength;
+                strength += new Vector3(Range(-strength.x, strength.x), Range(-strength.y, strength.y), Range(-strength.z, strength.z)) * GetRandomPercent(percent);
+                dest += strength;
+            }
             if (snap)
             {
                 dest.x = Mathf.RoundToInt(dest.x);
@@ -1448,10 +1494,18 @@ namespace IFramework
     }
     class ValueCalculator_Vector4 : ValueCalculator<Vector4>
     {
-        public override Vector4 Calculate(Vector4 start, Vector4 end, float percent, Vector4 srcValue, float srcPercent, bool snap)
+
+        public override Vector4 Calculate(TweenType mode, Vector4 start, Vector4 end, float percent, Vector4 srcValue, float srcPercent, bool snap, Vector4 strength, int frequency, float dampingRatio)
         {
             Vector4 dest = Vector4.Lerp(start, end, percent);
             dest = Vector4.Lerp(srcValue, dest, srcPercent);
+            if (mode == TweenType.Shake)
+            {
+                strength = EvaluateStrength(frequency, dampingRatio, percent) * strength;
+                strength += new Vector4(Range(-strength.x, strength.x), Range(-strength.y, strength.y), Range(-strength.z, strength.z), Range(-strength.w, strength.w)) * GetRandomPercent(percent);
+                dest += strength;
+            }
+
             if (snap)
             {
                 dest.x = Mathf.RoundToInt(dest.x);
@@ -1467,34 +1521,6 @@ namespace IFramework
     }
 
 
-    class ValueCalculator_Vector2Int : ValueCalculator<Vector2Int>
-    {
-        public override Vector2Int Calculate(Vector2Int start, Vector2Int end, float percent, Vector2Int srcValue, float srcPercent, bool snap)
-        {
-            Vector2 dest = Vector2.Lerp(start, end, percent);
-            dest = Vector2.Lerp(srcValue, dest, srcPercent);
 
-            dest.x = Mathf.RoundToInt(dest.x);
-            dest.y = Mathf.RoundToInt(dest.y);
-
-            return new Vector2Int((int)dest.x, (int)dest.y);
-        }
-
-        public override Vector2Int CalculatorEnd(Vector2Int start, Vector2Int end) => end + end - start;
-    }
-    class ValueCalculator_Vector3Int : ValueCalculator<Vector3Int>
-    {
-        public override Vector3Int Calculate(Vector3Int start, Vector3Int end, float percent, Vector3Int srcValue, float srcPercent, bool snap)
-        {
-            Vector3 dest = Vector3.Lerp(start, end, percent);
-            dest = Vector3.Lerp(srcValue, dest, srcPercent);
-            dest.x = Mathf.RoundToInt(dest.x);
-            dest.y = Mathf.RoundToInt(dest.y);
-            dest.z = Mathf.RoundToInt(dest.z);
-            return new Vector3Int((int)dest.x, (int)dest.y, (int)dest.z);
-        }
-
-        public override Vector3Int CalculatorEnd(Vector3Int start, Vector3Int end) => end + end - start;
-    }
 
 }

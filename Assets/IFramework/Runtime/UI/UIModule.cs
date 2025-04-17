@@ -56,7 +56,7 @@ namespace IFramework.UI
         public void CreateCanvas()
         {
             var _canvas = loadPart.CreateCanvas();
-            layerPart.CreateLayers(_canvas.transform);
+            layerPart.CreateLayers(_canvas);
             canvas = _canvas;
         }
 
@@ -270,10 +270,10 @@ namespace IFramework.UI
         public void SetBridge(IViewBridge bridge) => this.bridgePart = bridge;
         public void SetUIDelegate(IUIDelegate del) => this.delPart = del;
 
-        public void ShowRayCast() => layerPart.ShowRayCast();
-        public void HideRayCast() => layerPart.HideRayCast();
-        public void ForceShowRayCast() => layerPart.ForceShowRayCast();
-        public void ForceHideRayCast() => layerPart.ForceHideRayCast();
+        public void RefuseRayCast() => layerPart.RefuseRayCast();
+        public void AcceptRayCast() => layerPart.AcceptRayCast();
+        public void ForceRefuseRayCast() => layerPart.ForceRefuseRayCast();
+        public void ForceAcceptRayCast() => layerPart.ForceAcceptRayCast();
         private RuntimeUILayerData GetRTLayerData(string layer) => layerPart.GetRTLayerData(layer);
 
 
