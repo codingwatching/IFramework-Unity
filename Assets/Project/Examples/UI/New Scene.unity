@@ -614,13 +614,14 @@ GameObject:
   - component: {fileID: 970457636}
   - component: {fileID: 970457635}
   - component: {fileID: 970457634}
+  - component: {fileID: 970457637}
   m_Layer: 0
   m_Name: Sphere
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &970457633
 Transform:
   m_ObjectHideFlags: 0
@@ -629,8 +630,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 970457632}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 3, y: 2, z: 2}
+  m_LocalPosition: {x: 0, y: 0, z: -10.6}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -699,6 +700,58 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 970457632}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &970457637
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 970457632}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9509e9db98f0df4eb422f8730e97adc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mode: 0
+  timeScale: 1
+  PlayOnAwake: 0
+  actors:
+  - rid: 4652481592224907264
+  onCancel:
+    m_PersistentCalls:
+      m_Calls: []
+  onBegin:
+    m_PersistentCalls:
+      m_Calls: []
+  onComplete:
+    m_PersistentCalls:
+      m_Calls: []
+  onTick:
+    m_PersistentCalls:
+      m_Calls: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 4652481592224907264
+      type: {class: DoLocalScale, ns: IFramework, asm: IFramework}
+      data:
+        curveType: 0
+        loopType: 0
+        loops: 1
+        delay: 0
+        duration: 1
+        snap: 0
+        curve:
+          serializedVersion: 2
+          m_Curve: []
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        ease: 0
+        startType: 1
+        target: {fileID: 970457633}
+        start: {x: 1, y: 1, z: 1}
+        end: {x: 2, y: 2, z: 2}
 --- !u!1 &1020455705
 GameObject:
   m_ObjectHideFlags: 0
@@ -802,6 +855,42 @@ MonoBehaviour:
   - rid: 4652481586744262676
   - rid: 4652481586744262677
   - rid: 4652481586744262678
+  onCancel:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 970457637}
+        m_TargetAssemblyTypeName: IFramework.TweenComponent, IFramework
+        m_MethodName: Play
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 1
+  onBegin:
+    m_PersistentCalls:
+      m_Calls: []
+  onComplete:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 970457637}
+        m_TargetAssemblyTypeName: IFramework.TweenComponent, IFramework
+        m_MethodName: Play
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 1
+  onTick:
+    m_PersistentCalls:
+      m_Calls: []
   references:
     version: 2
     RefIds:

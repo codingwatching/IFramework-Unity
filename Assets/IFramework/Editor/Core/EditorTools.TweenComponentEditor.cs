@@ -64,12 +64,12 @@ namespace IFramework
             {
                 GUI.enabled = !EditorApplication.isPlaying;
                 base.OnInspectorGUI();
-
+                var _style = new GUIStyle(EditorStyles.miniPullDown)
+                {
+                    fixedHeight = 30
+                };
                 if (EditorGUILayout.DropdownButton(new GUIContent("Actors", EditorGUIUtility.TrIconContent("d_Toolbar Plus").image),
-                    FocusType.Passive, new GUIStyle(EditorStyles.miniPullDown)
-                    {
-                        fixedHeight = 30
-                    }))
+                    FocusType.Passive, _style))
                 {
                     var types = typeof(TweenComponentActor).GetSubTypesInAssemblies()
                         .Where(x => !x.IsAbstract).ToList();
@@ -143,8 +143,31 @@ namespace IFramework
                     EditorUtility.SetDirty(comp);
                     //if (comp.hasValue && !comp.paused)
                 }
-                GUILayout.Space(10);
                 Repaint();
+                GUILayout.Space(10);
+
+                var _fold = GetFoldout(this);
+                if (EditorGUILayout.DropdownButton(new GUIContent("Events"), FocusType.Passive, _style))
+                {
+                    _fold = !_fold;
+                    SetFoldout(this, _fold);
+                }
+                if (_fold)
+                {
+                    EditorGUI.BeginChangeCheck();
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(comp.onBegin)));
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(comp.onCancel)));
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(comp.onComplete)));
+                    EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(comp.onTick)));
+
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        EditorUtility.SetDirty(comp);
+                        serializedObject.ApplyModifiedProperties();
+                    }
+                }
+                GUILayout.Space(10);
+
                 Tools();
             }
 
