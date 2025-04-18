@@ -10,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 namespace IFramework
 {
@@ -60,10 +59,9 @@ namespace IFramework
     {
         ITweenGroup NewContext(Func<ITweenContext> func);
     }
-    //interface ITweenSequence : ITweenGroup { }
-    //interface ITweenParallel : ITweenGroup { }
-
     public interface ITweenContext<T> : ITweenContext { }
+
+    public interface ITweenContext<T, Target> : ITweenContext<T> { }
 
     public interface ITweenContextBox
     {
@@ -89,18 +87,20 @@ namespace IFramework
             Recycle();
         }
         public bool autoCycle { get; private set; }
-
         public bool isDone { get; private set; }
         public bool canceled { get; private set; }
         public bool valid { get; set; }
+        public bool paused { get; private set; }
+        protected float timeScale { get; private set; }
+
+
 
         private Action<ITweenContext> onBegin;
 
         private Action<ITweenContext> onComplete;
         private Action<ITweenContext> onCancel;
         private Action<ITweenContext, float, float> onTick;
-        public bool paused { get; private set; }
-        protected float timeScale { get; private set; }
+
 
 
         public void OnBegin(Action<ITweenContext> action) => onBegin += action;
@@ -116,13 +116,19 @@ namespace IFramework
             onBegin = null;
             onComplete = null;
             onTick = null;
-            SetTimeScale(1);
+            autoCycle = true;
+            timeScale = 1f;
         }
         protected void InvokeCancel()
         {
             if (canceled) return;
             canceled = true;
             onCancel?.Invoke(this);
+        }
+        protected void SetCancel()
+        {
+            if (canceled) return;
+            canceled = true;
         }
         protected void InvokeComplete()
         {
@@ -138,10 +144,7 @@ namespace IFramework
 
         void IPoolObject.OnGet() => Reset();
 
-        void IPoolObject.OnSet()
-        {
-            Reset();
-        }
+        void IPoolObject.OnSet() => Reset();
 
         public virtual ITweenContext SetTimeScale(float timeScale)
         {
@@ -154,12 +157,12 @@ namespace IFramework
 
         public virtual void Pause()
         {
-            if (paused) return;
+            if (!valid || paused) return;
             paused = true;
         }
         public virtual void UnPause()
         {
-            if (!paused) return;
+            if (!valid || !paused) return;
             paused = false;
         }
 
@@ -507,101 +510,58 @@ namespace IFramework
 
     abstract class TweenContext : TweenContextBase, ITweenContext
     {
-
-        private ITimerContext _context;
-
-
-
         protected float time { get; private set; }
-
+        public abstract Type ValueType { get; }
 
         protected void SetTime(float value) => time = value;
-
-        protected abstract ITimerContext CreateLoop(TweenScheduler scheduler);
+        internal void Update(float deltaTime)
+        {
+            if (paused || isDone) return;
+            if (!MoveNext(deltaTime))
+            {
+                InvokeComplete();
+                TryRecycle();
+            }
+            else
+            {
+                InvokeTick(this.time, deltaTime);
+            }
+        }
+        protected abstract bool MoveNext(float delta);
         public override void Run()
         {
-            base.Run();
-            _context = null;
             this.SetTime(0);
+            base.Run();
             OnRun();
-            var context = CreateLoop(Tween.GetScheduler());
-            _context = context;
-            context.OnTick(OnTimerTick);
-            context.OnComplete(OnTimerComplete);
         }
         protected abstract void OnRun();
-
-
-        private void OnTimerComplete(ITimerContext context)
-        {
-            InvokeComplete();
-            TryRecycle();
-            _context = null;
-        }
-
-        private void OnTimerTick(float time, float delta) => InvokeTick(this.time, delta);
-
-        protected override void Reset()
-        {
-            _context = null;
-
-            base.Reset();
-            this.SetTime(0);
-            this.SetAutoCycle(true);
-        }
-
-
-        public override void Pause()
-        {
-            if (!valid || paused) return;
-            base.Pause();
-            _context?.Pause();
-        }
-
-        public override void UnPause()
-        {
-            if (!valid || !paused) return;
-            base.UnPause();
-            _context?.UnPause();
-        }
-
         public override void Complete(bool callComplete)
         {
             if (isDone) return;
-            if (_context != null)
-            {
-                if (callComplete)
-                    _context.Complete();
-                else
-                {
-                    _context.Cancel();
-                    InvokeCancel();
-                }
-                _context = null;
-            }
-
+            if (callComplete)
+                InvokeComplete();
+            else
+                InvokeCancel();
             TryRecycle();
         }
-
-
 
         public override void Stop()
         {
-            var context = _context;
-            if (context != null && (context as IPoolObject).valid)
-                context?.Cancel();
-            _context = null;
+            SetCancel();
             TryRecycle();
         }
+
     }
     public enum TweenType
     {
         Normal, Shake, Punch, Jump
     }
-    class TweenContext<T> : TweenContext, ITweenContext<T>
+    class TweenContext<T, Target> : TweenContext, ITweenContext<T, Target>
     {
-
+        private Target target;
         private static ValueCalculator<T> _calc;
+        private static Type _valueType;
+
         private T start;
         private T end;
         private bool snap;
@@ -611,8 +571,8 @@ namespace IFramework
         private IValueEvaluator evaluator;
         private int loops;
         private LoopType loopType;
-        private Func<T> getter;
-        private Action<T> setter;
+        private Func<Target, T> getter;
+        private Action<Target, T> setter;
         private T _start;
         private T _end;
 
@@ -633,6 +593,17 @@ namespace IFramework
                 return _calc;
             }
         }
+
+        public override Type ValueType
+        {
+            get
+            {
+                if (_valueType == null)
+                    _valueType = typeof(T);
+                return _valueType;
+            }
+        }
+
         protected override void Reset()
         {
             base.Reset();
@@ -643,7 +614,6 @@ namespace IFramework
             this.SetLoop(LoopType.Restart, 1);
             _set2Start_called = false;
         }
-        protected override ITimerContext CreateLoop(TweenScheduler scheduler) => scheduler.DoWhile(LoopLogic);
         protected override void OnRun()
         {
             _wait_delay_flag = true;
@@ -659,7 +629,7 @@ namespace IFramework
         private T strength;
 
 
-        private bool LoopLogic(float time, float delta)
+        protected override bool MoveNext(float delta)
         {
             var targetTime = this.time + delta * timeScale;
             if (!_set2Start_called && getter != null)
@@ -703,11 +673,10 @@ namespace IFramework
             var _convertPercent = evaluator.Evaluate(_percent, _time, _dur);
             var _deltaPercent = (1 - sourceDelta) + sourceDelta * _percent;
 
-
-            var src = getter.Invoke();
+            var src = getter.Invoke(target);
             T _cur = calc.Calculate(_mode, _start, _end, _convertPercent, src, _deltaPercent, snap, strength, frequency, dampingRatio, jumpCount, jumpDamping);
             if (!src.Equals(_cur))
-                setter?.Invoke(_cur);
+                setter?.Invoke(target, _cur);
         }
 
 
@@ -730,8 +699,9 @@ namespace IFramework
         }
 
 
-        public TweenContext<T> Config(T start, T end, float duration, Func<T> getter, Action<T> setter, bool snap)
+        public TweenContext<T, Target> Config(Target target, T start, T end, float duration, Func<Target, T> getter, Action<Target, T> setter, bool snap)
         {
+            this.target = target;
             _mode = TweenType.Normal;
             this._start = this.start = start;
             this._end = this.end = end;
@@ -741,10 +711,10 @@ namespace IFramework
             this.snap = snap;
             return this;
         }
-        public TweenContext<T> ShakeConfig(T start, T end, float duration, Func<T> getter, Action<T> setter, bool snap, T strength,
+        public TweenContext<T, Target> ShakeConfig(Target target, T start, T end, float duration, Func<Target, T> getter, Action<Target, T> setter, bool snap, T strength,
             int frequency, float dampingRatio)
         {
-            this.Config(start, end, duration, getter, setter, snap);
+            this.Config(target, start, end, duration, getter, setter, snap);
             _mode = TweenType.Shake;
             this.frequency = frequency;
             this.dampingRatio = dampingRatio;
@@ -752,10 +722,10 @@ namespace IFramework
 
             return this;
         }
-        public TweenContext<T> PunchConfig(T start, T end, float duration, Func<T> getter, Action<T> setter, bool snap, T strength,
+        public TweenContext<T, Target> PunchConfig(Target target, T start, T end, float duration, Func<Target, T> getter, Action<Target, T> setter, bool snap, T strength,
        int frequency, float dampingRatio)
         {
-            this.Config(start, end, duration, getter, setter, snap);
+            this.Config(target, start, end, duration, getter, setter, snap);
             _mode = TweenType.Punch;
             this.frequency = frequency;
             this.dampingRatio = dampingRatio;
@@ -763,10 +733,10 @@ namespace IFramework
 
             return this;
         }
-        public TweenContext<T> JumpConfig(T start, T end, float duration, Func<T> getter, Action<T> setter, bool snap, T strength,
+        public TweenContext<T, Target> JumpConfig(Target target, T start, T end, float duration, Func<Target, T> getter, Action<Target, T> setter, bool snap, T strength,
   int jumpCount, float jumpDamping)
         {
-            this.Config(start, end, duration, getter, setter, snap);
+            this.Config(target, start, end, duration, getter, setter, snap);
             _mode = TweenType.Jump;
             this.jumpCount = jumpCount;
             this.jumpDamping = jumpDamping;
@@ -822,20 +792,23 @@ namespace IFramework
 
 
 
-    class TweenScheduler : ITimerScheduler
+    class TweenScheduler
     {
-        private TimerScheduler timer;
         private Dictionary<Type, ISimpleObjectPool> contextPools;
 
         public TweenScheduler()
         {
-            timer = TimerScheduler.CreateInstance<TimerScheduler>();
             contextPools = new Dictionary<Type, ISimpleObjectPool>();
         }
 
         public void Update()
         {
-            timer.Update();
+            float deltaTime = Launcher.GetDeltaTime();
+            for (int i = 0; i < contexts_run.Count; i++)
+            {
+                var context = contexts_run[i];
+                (context as TweenContext).Update(deltaTime);
+            }
             for (int i = 0; i < contexts_wait_to_run.Count; i++)
             {
                 var context = contexts_wait_to_run[i];
@@ -844,25 +817,20 @@ namespace IFramework
             contexts_wait_to_run.Clear();
         }
 
-        T ITimerScheduler.NewTimerContext<T>() => timer.NewTimerContext<T>();
-        ITimerContext ITimerScheduler.RunTimerContext(TimerContext context) => timer.RunTimerContext(context);
-        ITimerSequence ITimerScheduler.NewTimerSequence() => timer.NewTimerSequence();
-        ITimerParallel ITimerScheduler.NewTimerParallel() => timer.NewTimerParallel();
-
         private List<ITweenContext> contexts_run = new List<ITweenContext>();
         private List<ITweenContext> contexts_wait_to_run = new List<ITweenContext>();
 
 
-        public ITweenContext<T> AllocateContext<T>(bool auto_run)
+        public ITweenContext<T, Target> AllocateContext<T, Target>(bool auto_run)
         {
-            Type type = typeof(TweenContext<T>);
+            Type type = typeof(T);
             ISimpleObjectPool pool = null;
             if (!contextPools.TryGetValue(type, out pool))
             {
-                pool = new SimpleObjectPool<TweenContext<T>>();
+                pool = new SimpleObjectPool<TweenContext<T, Target>>();
                 contextPools.Add(type, pool);
             }
-            var simple = pool as SimpleObjectPool<TweenContext<T>>;
+            var simple = pool as SimpleObjectPool<TweenContext<T, Target>>;
             var context = simple.Get();
             if (auto_run)
                 contexts_wait_to_run.Add(context);
@@ -899,7 +867,13 @@ namespace IFramework
 
         public void CycleContext(ITweenContext context)
         {
-            Type type = context.GetType();
+            Type type = null;
+            if (context is ITweenGroup)
+                type = context.GetType();
+            else
+            {
+                type = (context as TweenContext).ValueType;
+            }
             ISimpleObjectPool pool = null;
             if (!contextPools.TryGetValue(type, out pool)) return;
             contexts_run.Remove(context);
@@ -949,7 +923,7 @@ namespace IFramework
 
 
 
-    public static partial class Tween
+    public static class Tween
     {
 #if UNITY_EDITOR
         private static TweenScheduler editorScheduler;
@@ -1006,53 +980,53 @@ namespace IFramework
 
 
         //public static ITweenContext<T> As<T>(this ITweenContext t) => t as ITweenContext<T>;
-        private static TweenContext<T> AsInstance<T>(this ITweenContext<T> context) => context as TweenContext<T>;
+        private static TweenContext<T, Target> AsInstance<T, Target>(this ITweenContext<T, Target> context) => context as TweenContext<T, Target>;
         public static IAwaiter<T> GetAwaiter<T>(this T context) where T : ITweenContext => new ITweenContextAwaitor<T>(context);
-        public static ITweenContext<T> DoGoto<T>(T start, T end, float duration, Func<T> getter, Action<T> setter, bool snap, bool autoRun = true)
+        public static ITweenContext<T, Target> DoGoto<T, Target>(Target target, T start, T end, float duration, Func<Target, T> getter, Action<Target, T> setter, bool snap, bool autoRun = true)
         {
-            var context = GetScheduler().AllocateContext<T>(autoRun);
-            context.AsInstance().Config(start, end, duration, getter, setter, snap);
+            var context = GetScheduler().AllocateContext<T, Target>(autoRun);
+            context.AsInstance().Config(target, start, end, duration, getter, setter, snap);
             return context;
         }
-        public static ITweenContext<T> DoGoto<T>(T end, float duration, Func<T> getter, Action<T> setter, bool snap, bool autoRun = true)
-            => DoGoto(getter.Invoke(), end, duration, getter, setter, snap, autoRun);
+        public static ITweenContext<T, Target> DoGoto<T, Target>(Target target, T end, float duration, Func<Target, T> getter, Action<Target, T> setter, bool snap, bool autoRun = true)
+            => DoGoto(target, getter.Invoke(target), end, duration, getter, setter, snap, autoRun);
 
-        public static ITweenContext<T> DoShake<T>(T start, T end, float duration, Func<T> getter, Action<T> setter, T strength,
+        public static ITweenContext<T, Target> DoShake<T, Target>(Target target, T start, T end, float duration, Func<Target, T> getter, Action<Target, T> setter, T strength,
             int frequency = 10, float dampingRatio = 1, bool snap = false, bool autoRun = true)
         {
-            var context = GetScheduler().AllocateContext<T>(autoRun);
-            context.AsInstance().ShakeConfig(start, end, duration, getter, setter, snap, strength, frequency, dampingRatio);
+            var context = GetScheduler().AllocateContext<T, Target>(autoRun);
+            context.AsInstance().ShakeConfig(target, start, end, duration, getter, setter, snap, strength, frequency, dampingRatio);
             return context;
         }
 
-        public static ITweenContext<T> DoShake<T>(T end, float duration, Func<T> getter, Action<T> setter, T strength,
+        public static ITweenContext<T, Target> DoShake<T, Target>(Target target, T end, float duration, Func<Target, T> getter, Action<Target, T> setter, T strength,
           int frequency = 10, float dampingRatio = 1, bool snap = false, bool autoRun = true)
         {
-            return DoShake<T>(getter.Invoke(), end, duration, getter, setter, strength, frequency, dampingRatio, snap, autoRun);
+            return DoShake<T, Target>(target, getter.Invoke(target), end, duration, getter, setter, strength, frequency, dampingRatio, snap, autoRun);
         }
-        public static ITweenContext<T> DoPunch<T>(T start, T end, float duration, Func<T> getter, Action<T> setter, T strength,
+        public static ITweenContext<T, Target> DoPunch<T, Target>(Target target, T start, T end, float duration, Func<Target, T> getter, Action<Target, T> setter, T strength,
       int frequency = 10, float dampingRatio = 1, bool snap = false, bool autoRun = true)
         {
-            var context = GetScheduler().AllocateContext<T>(autoRun);
-            context.AsInstance().PunchConfig(start, end, duration, getter, setter, snap, strength, frequency, dampingRatio);
+            var context = GetScheduler().AllocateContext<T, Target>(autoRun);
+            context.AsInstance().PunchConfig(target, start, end, duration, getter, setter, snap, strength, frequency, dampingRatio);
             return context;
         }
-        public static ITweenContext<T> DoPunch<T>(T end, float duration, Func<T> getter, Action<T> setter, T strength,
+        public static ITweenContext<T, Target> DoPunch<T, Target>(Target target, T end, float duration, Func<Target, T> getter, Action<Target, T> setter, T strength,
        int frequency = 10, float dampingRatio = 1, bool snap = false, bool autoRun = true)
         {
-            return DoPunch<T>(getter.Invoke(), end, duration, getter, setter, strength, frequency, dampingRatio, snap, autoRun);
+            return DoPunch<T, Target>(target, getter.Invoke(target), end, duration, getter, setter, strength, frequency, dampingRatio, snap, autoRun);
         }
-        public static ITweenContext<T> DoJump<T>(T start, T end, float duration, Func<T> getter, Action<T> setter, T strength,
+        public static ITweenContext<T, Target> DoJump<T, Target>(Target target, T start, T end, float duration, Func<Target, T> getter, Action<Target, T> setter, T strength,
    int jumpCount = 5, float jumpDamping = 2f, bool snap = false, bool autoRun = true)
         {
-            var context = GetScheduler().AllocateContext<T>(autoRun);
-            context.AsInstance().JumpConfig(start, end, duration, getter, setter, snap, strength, jumpCount, jumpDamping);
+            var context = GetScheduler().AllocateContext<T, Target>(autoRun);
+            context.AsInstance().JumpConfig(target, start, end, duration, getter, setter, snap, strength, jumpCount, jumpDamping);
             return context;
         }
-        public static ITweenContext<T> DoJump<T>(T end, float duration, Func<T> getter, Action<T> setter, T strength,
+        public static ITweenContext<T, Target> DoJump<T, Target>(Target target, T end, float duration, Func<Target, T> getter, Action<Target, T> setter, T strength,
 int jumpCount = 5, float jumpDamping = 2f, bool snap = false, bool autoRun = true)
         {
-            return DoJump<T>(getter.Invoke(), end, duration, getter, setter, strength, jumpCount, jumpDamping, snap, autoRun);
+            return DoJump<T, Target>(target, getter.Invoke(target), end, duration, getter, setter, strength, jumpCount, jumpDamping, snap, autoRun);
 
         }
         public static ITweenGroup Sequence() => GetScheduler().AllocateSequence();
@@ -1124,12 +1098,9 @@ int jumpCount = 5, float jumpDamping = 2f, bool snap = false, bool autoRun = tru
         }
         public static T Run<T>(this T t) where T : ITweenContext
         {
-            if (!(t is ITweenGroup))
-            {
-                Tween.GetScheduler().AddToRun(t);
-            }
             t.AsContextBase().Run();
-
+            if (!(t is ITweenGroup))
+                Tween.GetScheduler().AddToRun(t);
             return t;
         }
         public static T OnComplete<T>(this T t, Action<ITweenContext> action) where T : ITweenContext
@@ -1157,60 +1128,60 @@ int jumpCount = 5, float jumpDamping = 2f, bool snap = false, bool autoRun = tru
 
 
 
-        public static ITweenContext<T> SetLoop<T>(this ITweenContext<T> context, LoopType type, int loops)
+        public static ITweenContext<T, Target> SetLoop<T, Target>(this ITweenContext<T, Target> context, LoopType type, int loops)
         {
             context.AsInstance().SetLoop(type, loops);
             return context;
         }
 
-        public static ITweenContext<T> SetDelay<T>(this ITweenContext<T> t, float value)
+        public static ITweenContext<T, Target> SetDelay<T, Target>(this ITweenContext<T, Target> t, float value)
         {
             t.AsInstance().SetDelay(value);
             return t;
         }
-        public static ITweenContext<T> SetSourceDelta<T>(this ITweenContext<T> t, float delta)
+        public static ITweenContext<T, Target> SetSourceDelta<T, Target>(this ITweenContext<T, Target> t, float delta)
         {
             t.AsInstance().SetSourceDelta(delta);
             return t;
         }
-        public static ITweenContext<T> SetEvaluator<T>(this ITweenContext<T> t, IValueEvaluator evaluator)
+        public static ITweenContext<T, Target> SetEvaluator<T, Target>(this ITweenContext<T, Target> t, IValueEvaluator evaluator)
         {
             t.AsInstance().SetEvaluator(evaluator);
             return t;
         }
-        public static ITweenContext<T> SetEase<T>(this ITweenContext<T> t, Ease ease) => t.SetEvaluator(new EaseEvaluator(ease));
-        public static ITweenContext<T> SetAnimationCurve<T>(this ITweenContext<T> t, AnimationCurve curve) => t.SetEvaluator(new AnimationCurveEvaluator(curve));
-        public static ITweenContext<T> SetSnap<T>(this ITweenContext<T> t, bool value)
+        public static ITweenContext<T, Target> SetEase<T, Target>(this ITweenContext<T, Target> t, Ease ease) => t.SetEvaluator(new EaseEvaluator(ease));
+        public static ITweenContext<T, Target> SetAnimationCurve<T, Target>(this ITweenContext<T, Target> t, AnimationCurve curve) => t.SetEvaluator(new AnimationCurveEvaluator(curve));
+        public static ITweenContext<T, Target> SetSnap<T, Target>(this ITweenContext<T, Target> t, bool value)
         {
             t.AsInstance().SetSnap(value);
             return t;
         }
-        public static ITweenContext<T> SetDuration<T>(this ITweenContext<T> t, float value)
+        public static ITweenContext<T, Target> SetDuration<T, Target>(this ITweenContext<T, Target> t, float value)
         {
             t.AsInstance().SetDuration(value);
             return t;
         }
-        public static ITweenContext<T> SetFrequency<T>(this ITweenContext<T> t, int value)
+        public static ITweenContext<T, Target> SetFrequency<T, Target>(this ITweenContext<T, Target> t, int value)
         {
             t.AsInstance().SetFrequency(value);
             return t;
         }
-        public static ITweenContext<T> SetDampingRatio<T>(this ITweenContext<T> t, float value)
+        public static ITweenContext<T, Target> SetDampingRatio<T, Target>(this ITweenContext<T, Target> t, float value)
         {
             t.AsInstance().SetDampingRatio(value);
             return t;
         }
-        public static ITweenContext<T> SetJumpCount<T>(this ITweenContext<T> t, int value)
+        public static ITweenContext<T, Target> SetJumpCount<T, Target>(this ITweenContext<T, Target> t, int value)
         {
             t.AsInstance().SetJumpCount(value);
             return t;
         }
-        public static ITweenContext<T> SetJumpDamping<T>(this ITweenContext<T> t, float value)
+        public static ITweenContext<T, Target> SetJumpDamping<T, Target>(this ITweenContext<T, Target> t, float value)
         {
             t.AsInstance().SetJumpDamping(value);
             return t;
         }
-        public static ITweenContext<T> SetStrength<T>(this ITweenContext<T> t, T value)
+        public static ITweenContext<T, Target> SetStrength<T, Target>(this ITweenContext<T, Target> t, T value)
         {
             t.AsInstance().SetStrength(value);
             return t;

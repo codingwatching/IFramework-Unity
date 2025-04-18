@@ -50,29 +50,17 @@ namespace IFramework
         async void TweenTest()
         {
 
-            var tween = await Tween.DoGoto(Vector3.one * 2, 0.2f, () => this.view.OpenOne.transform.localScale, (value) =>
-                {
-
-                    this.view.OpenOne.transform.localScale = value;
-
-                    //Debug.LogError(value);
-                }, false).SetLoop(LoopType.PingPong, 6).AddTo(this);
+            var tween = await this.view.OpenOne.transform.DoLocalScale(Vector3.one * 2, 0.2f, false).SetLoop(LoopType.PingPong, 6).AddTo(this);
             Debug.LogError("xxl");
-        
+
 
         }
         async void TweenTest2()
         {
             var pos = transform.position;
-            var _tween =await Tween.Parallel()
-                       .NewContext(() => Tween.DoGoto(Vector3.one, Vector3.one * 2, 0.2f, () => this.view.OpenOne.transform.localScale, (value) =>
-                         {
-                             this.view.OpenOne.transform.localScale = value;
-                         }, false).SetLoop(LoopType.PingPong, 6))
-                      .NewContext(() => Tween.DoGoto(pos, Vector3.one, 0.2f, () => this.view.OpenOne.transform.position, (value) =>
-                      {
-                          this.view.OpenOne.transform.position = value;
-                      }, true).SetLoop(LoopType.PingPong, 6))
+            var _tween = await Tween.Parallel()
+                       .NewContext(() => this.view.OpenOne.transform.DoLocalScale( Vector3.one, Vector3.one * 2, 0.2f, false).SetLoop(LoopType.PingPong, 6))
+                      .NewContext(() => this.view.OpenOne.transform.DoPosition(pos, Vector3.one, 0.2f, true).SetLoop(LoopType.PingPong, 6))
                                .Run().AddTo(this).SetAutoCycle(false);
 
             Debug.LogError("xxl");
