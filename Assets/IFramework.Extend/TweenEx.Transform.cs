@@ -18,8 +18,15 @@ namespace IFramework
             World,
             Local
         }
+        enum StartValueType
+        {
+            Relative,
+            Direct
+        }
         class DoScaleActor : TweenComponentActor<Vector3, Transform>
         {
+            public StartValueType startType;
+
             public Vector3 start = Vector3.one;
             public Vector3 end = Vector3.one;
             protected override ITweenContext<Vector3, Transform> OnCreate()
@@ -32,6 +39,8 @@ namespace IFramework
         class DoPositionActor : TweenComponentActor<Vector3, Transform>
         {
 
+
+            public StartValueType startType;
             public TransformActSpace space;
             public Vector3 start = Vector3.zero;
             public Vector3 end = Vector3.one;
@@ -51,6 +60,8 @@ namespace IFramework
         }
         class DoRotateActor : TweenComponentActor<Vector3, Transform>
         {
+            public StartValueType startType;
+
             public TransformActSpace space;
             public Vector3 start = Vector3.zero;
             public Vector3 end = Vector3.one;
@@ -229,7 +240,49 @@ namespace IFramework
 
 
 
+        class DoScaleArrayActor : TweenComponentActor<Vector3, Transform>
+        {
+            public Vector3[] points;
+            protected override ITweenContext<Vector3, Transform> OnCreate()
+            {
+                return target.DoLocalScaleArray(duration, points, snap);
+            }
+        }
+        class DoPositionArrayActor : TweenComponentActor<Vector3, Transform>
+        {
 
+
+            public TransformActSpace space;
+            public Vector3[] points;
+
+            protected override ITweenContext<Vector3, Transform> OnCreate()
+            {
+                if (space == TransformActSpace.Local)
+                {
+
+                    return target.DoLocalPositionArray(duration, points, snap);
+                }
+                return target.DoPositionArray(duration, points, snap);
+
+
+            }
+        }
+        class DoRotateArrayActor : TweenComponentActor<Vector3, Transform>
+        {
+            public TransformActSpace space;
+            public Vector3[] points;
+
+            protected override ITweenContext<Vector3, Transform> OnCreate()
+            {
+                if (space == TransformActSpace.Local)
+                {
+
+                    return target.DoLocalRotateArray(duration, points, snap);
+                }
+                return target.DoRotateArray(duration, points, snap);
+
+            }
+        }
 
 
 
@@ -331,6 +384,27 @@ namespace IFramework
             => Tween.DoJump(target, start, end, duration, static (target) => target.localScale, static (target, value) => target.localScale = value, strength, jumpCount, jumpDamping, snap);
         public static ITweenContext<Vector3, Transform> DoJumpLocalScale(this Transform target, Vector3 end, float duration, Vector3 strength, int jumpCount = 5, float jumpDamping = 2, bool snap = false)
             => DoJumpLocalScale(target, target.localScale, end, duration, strength, jumpCount, jumpDamping, snap);
+
+
+
+
+
+        public static ITweenContext<Vector3, Transform> DoRotateArray(this Transform target, float duration, Vector3[] points, bool snap = false)
+=> Tween.DoArray(target, duration, static (target) => target.eulerAngles, static (target, value) => target.eulerAngles = value, points, snap);
+
+        public static ITweenContext<Vector3, Transform> DoLocalRotateArray(this Transform target, float duration, Vector3[] points, bool snap = false)
+=> Tween.DoArray(target, duration, static (target) => target.localEulerAngles, static (target, value) => target.localEulerAngles = value, points, snap);
+
+        public static ITweenContext<Vector3, Transform> DoLocalPositionArray(this Transform target, float duration, Vector3[] points, bool snap = false)
+=> Tween.DoArray(target, duration, static (target) => target.localPosition, static (target, value) => target.localPosition = value, points, snap);
+
+        public static ITweenContext<Vector3, Transform> DoPositionArray(this Transform target, float duration, Vector3[] points, bool snap = false)
+=> Tween.DoArray(target, duration, static (target) => target.position, static (target, value) => target.position = value, points, snap);
+
+        public static ITweenContext<Vector3, Transform> DoLocalScaleArray(this Transform target, float duration, Vector3[] points, bool snap = false)
+=> Tween.DoArray(target, duration, static (target) => target.localScale, static (target, value) => target.localScale = value, points, snap);
+
+
     }
 
 }
