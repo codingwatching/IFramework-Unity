@@ -8,7 +8,6 @@
 *********************************************************************************/
 using System.Collections.Generic;
 using System;
-using UnityEngine;
 
 namespace IFramework
 {
@@ -265,24 +264,11 @@ namespace IFramework
         }
 
 
-        static DateTime last;
-        private static float GetRealDeltaTime()
-        {
-            var now = DateTime.Now;
-            var result = (now - last).TotalSeconds;
-            last = now;
-            return Mathf.Min((float)result, 0.02f);
-        }
 
 
         protected override void OnUpdate()
         {
-            float deltaTime = Time.deltaTime;
-#if UNITY_EDITOR
-            if (!Application.isPlaying)
-                deltaTime = GetRealDeltaTime();
-
-#endif
+            float deltaTime = Launcher.GetDeltaTime();
             for (int i = timers.Count - 1; i >= 0; i--)
             {
 
