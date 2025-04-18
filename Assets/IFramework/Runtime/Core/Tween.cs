@@ -511,8 +511,6 @@ namespace IFramework
     abstract class TweenContext : TweenContextBase, ITweenContext
     {
         protected float time { get; private set; }
-        public abstract Type ValueType { get; }
-
         protected void SetTime(float value) => time = value;
         internal void Update(float deltaTime)
         {
@@ -593,17 +591,6 @@ namespace IFramework
                 return _calc;
             }
         }
-
-        public override Type ValueType
-        {
-            get
-            {
-                if (_valueType == null)
-                    _valueType = typeof(T);
-                return _valueType;
-            }
-        }
-
         protected override void Reset()
         {
             base.Reset();
@@ -823,7 +810,7 @@ namespace IFramework
 
         public ITweenContext<T, Target> AllocateContext<T, Target>(bool auto_run)
         {
-            Type type = typeof(T);
+            Type type = typeof(TweenContext<T, Target>);
             ISimpleObjectPool pool = null;
             if (!contextPools.TryGetValue(type, out pool))
             {
@@ -867,13 +854,9 @@ namespace IFramework
 
         public void CycleContext(ITweenContext context)
         {
-            Type type = null;
-            if (context is ITweenGroup)
-                type = context.GetType();
-            else
-            {
-                type = (context as TweenContext).ValueType;
-            }
+            var type = context.GetType();
+
+
             ISimpleObjectPool pool = null;
             if (!contextPools.TryGetValue(type, out pool)) return;
             contexts_run.Remove(context);
