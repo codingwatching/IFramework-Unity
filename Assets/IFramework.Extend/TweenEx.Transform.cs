@@ -13,6 +13,11 @@ namespace IFramework
 {
     public static partial class TweenEx
     {
+        enum ArrayTweenType
+        {
+            Direct = 0,
+            Bezier = 1,
+        }
         enum TransformActSpace
         {
             World,
@@ -242,16 +247,22 @@ namespace IFramework
 
         class DoScaleArrayActor : TweenComponentActor<Vector3, Transform>
         {
+            public ArrayTweenType type;
             public Vector3[] points;
+
             protected override ITweenContext<Vector3, Transform> OnCreate()
             {
-                return target.DoLocalScaleArray(duration, points, snap);
+                if (type == ArrayTweenType.Direct)
+
+                    return target.DoLocalScaleArray(duration, points, snap);
+                return target.DoLocalScaleArrayBezier(duration, points, snap);
+
             }
         }
         class DoPositionArrayActor : TweenComponentActor<Vector3, Transform>
         {
 
-
+            public ArrayTweenType type;
             public TransformActSpace space;
             public Vector3[] points;
 
@@ -259,16 +270,20 @@ namespace IFramework
             {
                 if (space == TransformActSpace.Local)
                 {
-
-                    return target.DoLocalPositionArray(duration, points, snap);
+                    if (type == ArrayTweenType.Direct)
+                        return target.DoLocalPositionArray(duration, points, snap);
+                    return target.DoLocalPositionArrayBezier(duration, points, snap);
                 }
-                return target.DoPositionArray(duration, points, snap);
-
+                if (type == ArrayTweenType.Direct)
+                    return target.DoPositionArray(duration, points, snap);
+                return target.DoPositionArrayBezier(duration, points, snap);
 
             }
         }
         class DoRotateArrayActor : TweenComponentActor<Vector3, Transform>
         {
+            public ArrayTweenType type;
+
             public TransformActSpace space;
             public Vector3[] points;
 
@@ -276,11 +291,14 @@ namespace IFramework
             {
                 if (space == TransformActSpace.Local)
                 {
+                    if (type == ArrayTweenType.Direct)
+                        return target.DoLocalRotateArray(duration, points, snap);
+                    return target.DoLocalRotateArrayBezier(duration, points, snap);
 
-                    return target.DoLocalRotateArray(duration, points, snap);
                 }
-                return target.DoRotateArray(duration, points, snap);
-
+                if (type == ArrayTweenType.Direct)
+                    return target.DoRotateArray(duration, points, snap);
+                return target.DoRotateArrayBezier(duration, points, snap);
             }
         }
 
@@ -405,6 +423,23 @@ namespace IFramework
 => Tween.DoArray(target, duration, static (target) => target.localScale, static (target, value) => target.localScale = value, points, snap);
 
 
+
+
+
+        public static ITweenContext<Vector3, Transform> DoRotateArrayBezier(this Transform target, float duration, Vector3[] points, bool snap = false)
+=> Tween.DoBezier(target, duration, static (target) => target.eulerAngles, static (target, value) => target.eulerAngles = value, points, snap);
+
+        public static ITweenContext<Vector3, Transform> DoLocalRotateArrayBezier(this Transform target, float duration, Vector3[] points, bool snap = false)
+=> Tween.DoBezier(target, duration, static (target) => target.localEulerAngles, static (target, value) => target.localEulerAngles = value, points, snap);
+
+        public static ITweenContext<Vector3, Transform> DoLocalPositionArrayBezier(this Transform target, float duration, Vector3[] points, bool snap = false)
+=> Tween.DoBezier(target, duration, static (target) => target.localPosition, static (target, value) => target.localPosition = value, points, snap);
+
+        public static ITweenContext<Vector3, Transform> DoPositionArrayBezier(this Transform target, float duration, Vector3[] points, bool snap = false)
+=> Tween.DoBezier(target, duration, static (target) => target.position, static (target, value) => target.position = value, points, snap);
+
+        public static ITweenContext<Vector3, Transform> DoLocalScaleArrayBezier(this Transform target, float duration, Vector3[] points, bool snap = false)
+=> Tween.DoBezier(target, duration, static (target) => target.localScale, static (target, value) => target.localScale = value, points, snap);
     }
 
 }

@@ -491,7 +491,6 @@ GameObject:
   - component: {fileID: 1020455708}
   - component: {fileID: 1020455707}
   - component: {fileID: 1020455710}
-  - component: {fileID: 1020455711}
   m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
@@ -557,7 +556,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1020455705}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 1, y: 1, z: 1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -580,7 +579,7 @@ MonoBehaviour:
   timeScale: 1
   PlayOnAwake: 1
   actors:
-  - rid: 4652481618169298944
+  - rid: 4652481618169298951
   onCancel:
     m_PersistentCalls:
       m_Calls: []
@@ -596,10 +595,10 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 4652481618169298944
-      type: {class: TweenEx/DoPositionArrayActor, ns: IFramework, asm: Assembly-CSharp}
+    - rid: 4652481618169298951
+      type: {class: TweenEx/DoJumpPositionActor, ns: IFramework, asm: Assembly-CSharp}
       data:
-        curveType: 1
+        curveType: 0
         loopType: 0
         loops: 1
         delay: 0
@@ -608,52 +607,19 @@ MonoBehaviour:
         snap: 0
         curve:
           serializedVersion: 2
-          m_Curve:
-          - serializedVersion: 3
-            time: 0
-            value: 0
-            inSlope: 2
-            outSlope: 2
-            tangentMode: 0
-            weightedMode: 0
-            inWeight: 0
-            outWeight: 0
-          - serializedVersion: 3
-            time: 1
-            value: 1
-            inSlope: 0
-            outSlope: 0
-            tangentMode: 0
-            weightedMode: 0
-            inWeight: 0
-            outWeight: 0
+          m_Curve: []
           m_PreInfinity: 2
           m_PostInfinity: 2
           m_RotationOrder: 4
         ease: 0
-        target: {fileID: 733581139}
-        space: 1
-        points:
-        - {x: 0, y: 0, z: 0}
-        - {x: 10, y: 0, z: 0}
-        - {x: 5, y: 0, z: 4}
---- !u!114 &1020455711
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1020455705}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c3bf994ac4d0d18469e054f2036f03d4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  controlPoints:
-  - {fileID: 1020455709}
-  - {fileID: 1113219504}
-  - {fileID: 912819377}
-  segments: 20
+        target: {fileID: 1020455709}
+        startType: 0
+        space: 0
+        start: {x: 0, y: 0, z: 0}
+        end: {x: 1, y: 1, z: 1}
+        strength: {x: 1, y: 10, z: 1}
+        jumpCount: 5
+        jumpDamping: 2
 --- !u!1 &1113219500
 GameObject:
   m_ObjectHideFlags: 0
@@ -851,7 +817,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1682540832
 MonoBehaviour:
   m_ObjectHideFlags: 0
