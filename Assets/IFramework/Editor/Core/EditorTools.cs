@@ -231,6 +231,27 @@ namespace IFramework
         {
             if (self.IsInterface)
                 return GetTypes().Where(item => item.GetInterfaces().Contains(self));
+            if (self.IsGenericType)
+            {
+                return GetTypes().Where(x =>
+                {
+                    var _type = x;
+                    while (_type != typeof(System.Object))
+                    {
+                        if (_type.IsGenericType && _type.GetGenericTypeDefinition() == self)
+                        {
+                            return true;
+                        }
+                        _type = _type.BaseType;
+                        if (_type==null)
+                        {
+                            break;
+                        }
+                    }
+
+                    return false;
+                });
+            }
             return GetTypes().Where(item => item.IsSubclassOf(self));
         }
 

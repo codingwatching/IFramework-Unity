@@ -15,14 +15,108 @@ using UnityEngine;
 using static IFramework.TweenComponentActor;
 namespace IFramework
 {
+
     public partial class EditorTools
     {
+        interface ITweenActorEditor
+        {
+            void OnInspectorGUI(TweenComponentActor actor);
+            void OnSceneGUI(TweenComponentActor actor);
+
+        }
+        public class TweenActorEditor<T> : ITweenActorEditor where T : TweenComponentActor
+        {
+            protected virtual void OnSceneGUI(T actor) { }
+            protected void DrawBase(T actor)
+            {
+                GUILayout.BeginVertical(EditorStyles.helpBox);
+                FieldDefaultInspector(actor.GetType().GetField("target"), actor);
+
+                actor.snap = EditorGUILayout.Toggle("Snap", actor.snap);
+                actor.sourceDelta = EditorGUILayout.FloatField("Source Delta", actor.sourceDelta);
+                actor.duration = EditorGUILayout.FloatField("Duration", actor.duration);
+                actor.delay = EditorGUILayout.FloatField("Delay", actor.delay);
+                GUILayout.Space(10);
+
+                actor.loopType = (LoopType)EditorGUILayout.EnumPopup(nameof(LoopType), actor.loopType);
+                actor.loops = EditorGUILayout.IntField("Loops", actor.loops);
+
+
+                GUILayout.Space(10);
+
+                actor.curveType = (CurveType)EditorGUILayout.EnumPopup(nameof(CurveType), actor.curveType);
+                if (actor.curveType == CurveType.Ease)
+                {
+                    actor.ease = (Ease)EditorGUILayout.EnumPopup(nameof(Ease), actor.ease);
+                }
+                else
+                {
+                    AnimationCurve curve = actor.curve;
+                    if (curve == null)
+                    {
+                        curve = new AnimationCurve();
+                    }
+                    actor.curve = EditorGUILayout.CurveField(nameof(AnimationCurve), curve);
+                }
+                GUILayout.EndVertical();
+            }
+            protected void DrawSelf(T actor)
+            {
+                List<Type> types = new List<Type>();
+
+
+                var _baseType = actor.GetType();
+                while (true)
+                {
+                    if (_baseType.IsGenericType && _baseType.GetGenericTypeDefinition() == typeof(TweenComponentActor<,>))
+                    {
+                        break;
+                    }
+                    types.Insert(0, _baseType);
+                    _baseType = _baseType.BaseType;
+                }
+
+
+                GUILayout.BeginVertical(EditorStyles.helpBox);
+
+                foreach (var type in types)
+                {
+                    var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
+                    for (int i = 0; i < fields.Length; i++)
+                    {
+                        FieldDefaultInspector(fields[i], actor);
+                    }
+                }
+                GUILayout.EndVertical();
+            }
+
+            protected virtual void OnInspectorGUI(T actor)
+            {
+                DrawBase(actor);
+                GUILayout.Space(5);
+                DrawSelf(actor);
+            }
+
+            void ITweenActorEditor.OnInspectorGUI(TweenComponentActor actor)
+            {
+                OnInspectorGUI(actor as T);
+            }
+
+            void ITweenActorEditor.OnSceneGUI(TweenComponentActor actor)
+            {
+                OnSceneGUI(actor as T);
+            }
+        }
+
         [CustomEditor(typeof(TweenComponent))]
         class TweenComponentEditor : Editor
         {
             TweenComponent comp;
             private void OnEnable()
             {
+                var editortypes = typeof(TweenActorEditor<>).GetSubTypesInAssemblies().Where(x => !x.IsGenericType && !x.IsAbstract).ToList();
+
+
                 comp = target as TweenComponent;
                 var types = typeof(TweenComponentActor).GetSubTypesInAssemblies()
                .Where(x => !x.IsAbstract).ToList();
@@ -52,6 +146,31 @@ namespace IFramework
                             map[args[1].Name] = 0;
                         map[args[1].Name]++;
                         options_type.Add(type);
+
+
+
+                        var find_editor = editortypes.Find(x =>
+                             {
+                                 var _type = x;
+                                 while (true)
+                                 {
+                                     if (_type.IsGenericType && _type.GetGenericTypeDefinition() == typeof(TweenActorEditor<>))
+                                     {
+                                         return true;
+                                     }
+                                     _type = _type.BaseType;
+                                     if (_type == null || _type == typeof(System.Object))
+                                     {
+                                         return false;
+                                     }
+                                 }
+                             });
+
+                        if (find_editor != null)
+                            editor_actor.Add(type, Activator.CreateInstance(find_editor) as ITweenActorEditor);
+                        else
+                            editor_actor.Add(type, Activator.CreateInstance(typeof(TweenActorEditor<>).MakeGenericType(type)) as ITweenActorEditor);
+
                     }
 
                 }
@@ -66,6 +185,8 @@ namespace IFramework
             int max_count;
             List<string> options = new List<string>();
             List<Type> options_type = new List<Type>();
+            Dictionary<Type, ITweenActorEditor> editor_actor = new Dictionary<Type, ITweenActorEditor>();
+
             private void Tools()
             {
                 GUILayout.BeginHorizontal();
@@ -207,11 +328,11 @@ namespace IFramework
                 rss = RectEx.VerticalSplit(rss[1], rect.height, 0);
                 using (new EditorGUI.DisabledGroupScope(index == 0))
                     if (GUI.Button(rss[0], EditorGUIUtility.TrIconContent("d_scrollup")))
-                    mode = Mode.MoveUp;
+                        mode = Mode.MoveUp;
                 rss = RectEx.VerticalSplit(rss[1], rect.height, 0);
                 using (new EditorGUI.DisabledGroupScope(index == comp.actors.Count - 1))
                     if (GUI.Button(rss[0], EditorGUIUtility.TrIconContent("d_scrolldown")))
-                    mode = Mode.MoveDown;
+                        mode = Mode.MoveDown;
 
 
 
@@ -222,69 +343,8 @@ namespace IFramework
                 GUILayout.BeginVertical();
                 if (mode == Mode.None && fold)
                 {
+                    editor_actor[actor.GetType()].OnInspectorGUI(actor);
 
-                    GUILayout.BeginVertical(EditorStyles.helpBox);
-                    FieldDefaultInspector(actor.GetType().GetField("target"), actor);
-
-                    actor.snap = EditorGUILayout.Toggle("Snap", actor.snap);
-                    actor.sourceDelta = EditorGUILayout.FloatField("Source Delta", actor.sourceDelta);
-                    actor.duration = EditorGUILayout.FloatField("Duration", actor.duration);
-                    actor.delay = EditorGUILayout.FloatField("Delay", actor.delay);
-                    GUILayout.Space(10);
-
-                    actor.loopType = (LoopType)EditorGUILayout.EnumPopup(nameof(LoopType), actor.loopType);
-                    actor.loops = EditorGUILayout.IntField("Loops", actor.loops);
-
-
-                    GUILayout.Space(10);
-
-                    actor.curveType = (CurveType)EditorGUILayout.EnumPopup(nameof(CurveType), actor.curveType);
-                    if (actor.curveType == CurveType.Ease)
-                    {
-                        actor.ease = (Ease)EditorGUILayout.EnumPopup(nameof(Ease), actor.ease);
-                    }
-                    else
-                    {
-                        AnimationCurve curve = actor.curve;
-                        if (curve == null)
-                        {
-                            curve = new AnimationCurve();
-                        }
-                        actor.curve = EditorGUILayout.CurveField(nameof(AnimationCurve), curve);
-                    }
-                    GUILayout.EndVertical();
-                    GUILayout.Space(5);
-
-                    List<Type> types = new List<Type>();
-
-
-                    var _baseType = actor.GetType();
-                    while (true)
-                    {
-                        if (_baseType.IsGenericType && _baseType.GetGenericTypeDefinition() == typeof(TweenComponentActor<,>))
-                        {
-                            break;
-                        }
-                        types.Insert(0, _baseType);
-                        _baseType = _baseType.BaseType;
-                    }
-
-
-                    GUILayout.BeginVertical(EditorStyles.helpBox);
-
-
-
-                    //actor.startType = (StartValueType)EditorGUILayout.EnumPopup(nameof(StartValueType), actor.startType);
-
-                    foreach (var type in types)
-                    {
-                        var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
-                        for (int i = 0; i < fields.Length; i++)
-                        {
-                            FieldDefaultInspector(fields[i], actor);
-                        }
-                    }
-                    GUILayout.EndVertical();
                 }
                 GUILayout.EndVertical();
                 GUILayout.EndHorizontal();
@@ -292,7 +352,16 @@ namespace IFramework
             }
 
 
+            private void OnSceneGUI()
+            {
+                for (int i = 0; i < comp.actors.Count; i++)
+                {
+                    var actor = comp.actors[i];
+                    if (GetFoldout(actor))
+                        editor_actor[actor.GetType()].OnSceneGUI(actor);
 
+                }
+            }
 
 
 

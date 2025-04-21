@@ -13,6 +13,87 @@ namespace IFramework
 {
     public static partial class TweenEx
     {
+#if UNITY_EDITOR
+        class DoPositionArrayActorEditor : IFramework.EditorTools.TweenActorEditor<DoPositionArrayActor>
+        {
+
+
+            Vector3 CalculateBezierPoint(Vector3[] points, float t)
+            {
+                int n = points.Length - 1;
+                Vector3 point = Vector3.zero;
+
+                for (int i = 0; i <= n; i++)
+                {
+                    Vector3 controlPoint = points[i];
+                    float binomialCoefficient = BinomialCoefficient(n, i);
+                    point += binomialCoefficient * Mathf.Pow(1 - t, n - i) * Mathf.Pow(t, i) * controlPoint;
+                }
+
+                return point;
+            }
+            // 二项式系数计算 (n choose k)
+            int BinomialCoefficient(int n, int k)
+            {
+                if (k < 0 || k > n) return 0;
+                if (k == 0 || k == n) return 1;
+
+                k = Mathf.Min(k, n - k); // 利用对称性优化计算
+                int result = 1;
+
+                for (int i = 1; i <= k; i++)
+                {
+                    result = result * (n - k + i) / i;
+                }
+
+                return result;
+            }
+            Vector3[] BezierPoints = new Vector3[200];
+
+            protected override void OnSceneGUI(DoPositionArrayActor actor)
+            {
+                base.OnSceneGUI(actor);
+                UnityEditor.Handles.BeginGUI();
+                UnityEditor.Handles.color = Color.yellow;
+                for (int i = 0; i < actor.points.Length; i++)
+                {
+                    var point = actor.points[i];
+                    UnityEditor.Handles.Label(point, $"point_{i}", new GUIStyle() { fontSize = 20 });
+
+                    var pos = UnityEditor.SceneView.lastActiveSceneView.camera.transform.position;
+                    var size = Mathf.Max(0.5f, Vector3.Distance(pos, point) * 0.02f);
+                    UnityEditor.Handles.SphereHandleCap(0, point, Quaternion.identity,size , EventType.Repaint);
+                    UnityEditor.EditorGUI.BeginChangeCheck();
+                    var p = UnityEditor.Handles.DoPositionHandle(point, Quaternion.identity);
+                    if (UnityEditor.EditorGUI.EndChangeCheck())
+                    {
+                        actor.points[i] = p;
+                    }
+                }
+                if (actor.type == ArrayTweenType.Direct)
+                {
+                    UnityEditor.Handles.DrawPolyLine(actor.points);
+                }
+                else
+                {
+                    float count = BezierPoints.Length;
+                    for (int i = 0; i < count; i++)
+                    {
+                        var t = CalculateBezierPoint(actor.points, i / count);
+                        BezierPoints[i] = t;
+                    }
+                    for (int i = 0; i < count - 1; i++)
+                    {
+                        UnityEditor.Handles.color = Color.Lerp(Color.blue, Color.cyan, i / count);
+                        UnityEditor.Handles.DrawLine(BezierPoints[i], BezierPoints[i + 1], 2);
+                    }
+                }
+                UnityEditor.Handles.EndGUI();
+            }
+        }
+#endif
+
+
         enum ArrayTweenType
         {
             Direct = 0,
